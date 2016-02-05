@@ -1,0 +1,26 @@
+package euphoria.WebsocketJSON;
+
+public class StandardPacket {
+  private String id;
+  private String type;
+  private DataPacket data;
+  private String error;
+  private boolean throttled;
+  private String throttled_reason;
+  
+  public StandardPacket(DataPacket d){
+    data = d;
+    type = d.getType();
+  }
+  
+  public StandardPacket(){}
+  
+  public DataPacket getData() {
+    return data;
+  }
+  
+  public void setData(DataPacket dP) {
+    data=dP;
+  }
+  
+}

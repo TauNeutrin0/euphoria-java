@@ -1,8 +1,10 @@
 package euphoria;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import euphoria.WebsocketJSON.*;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -71,14 +73,19 @@ public class RoomConnection {
     JsonObject jsonObj = new JsonParser().parse(msg).getAsJsonObject();
     System.out.println("Got msg: "+jsonObj.get("type").getAsString());
     if(jsonObj.get("type").getAsString().equals("ping-event")){
+      StandardPacket packet = createPacketFromJson(jsonObj);
+      StandardPacket reply = ((PingEvent)packet.getData()).createPingReply();
+      sendServerMessage(createJsonFromPacket(reply));
+      /*System.out.println("Ping time: "+((PingEvent)packet.getData()).getTime());
       Gson gson = new Gson();
       JsonObject reply = new JsonObject();
       reply.addProperty("type", "ping-reply");
       JsonObject data = new JsonObject();
       data.addProperty("time",jsonObj.get("data").getAsJsonObject().get("time").getAsInt());
       reply.add("data", data);
-      sendServerMessage(reply);
-      System.out.println("Sent ping-reply: "+gson.toJson(reply));
+      sendServerMessage(reply);*/
+      //sendServerMessage(gson.toJson(new PingReply()));
+      System.out.println("Sent ping-reply: "+createJsonFromPacket(reply));
     } else if(jsonObj.get("type").getAsString().equals("hello-event")){
       sessionID = jsonObj.get("data").getAsJsonObject().get("id").getAsString();
       changeNick("TauBot");
@@ -136,6 +143,21 @@ public class RoomConnection {
       }
     }
     return socket;
+  }
+  
+  public StandardPacket createPacketFromJson(JsonObject json) {
+    GsonBuilder gsonBilder = new GsonBuilder();
+    gsonBilder.registerTypeAdapter(StandardPacket.class, new DataAdapter());
+    Gson gson = gsonBilder.create();
+    StandardPacket packet = gson.fromJson(json,StandardPacket.class);
+    return packet;
+  }
+  public String createJsonFromPacket(StandardPacket pckt) {
+    GsonBuilder gsonBilder = new GsonBuilder();
+    gsonBilder.registerTypeAdapter(StandardPacket.class, new DataAdapter());
+    Gson gson = gsonBilder.create();
+    String json = gson.toJson(pckt);
+    return json;
   }
   
   public int sendMessage(String message, String parentID) {

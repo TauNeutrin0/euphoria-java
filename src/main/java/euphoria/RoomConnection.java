@@ -67,9 +67,9 @@ public class RoomConnection {
     }
   }
   
-  public boolean awaitClose(int duration, TimeUnit unit) throws InterruptedException {
+  /*public boolean awaitClose(int duration, TimeUnit unit) throws InterruptedException {
     return this.closeLatch.await(duration, unit);
-  }
+  }*/
 
   @OnWebSocketClose
   public void onClose(int statusCode, String reason) {

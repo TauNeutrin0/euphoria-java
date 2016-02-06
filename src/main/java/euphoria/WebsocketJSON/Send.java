@@ -1,8 +1,8 @@
 package euphoria.WebsocketJSON;
 
 public class Send extends DataPacket{
-  String content;
-  String parent;
+  private String content;
+  private String parent;
   
   public Send(String message, String prnt) {
     content = message;

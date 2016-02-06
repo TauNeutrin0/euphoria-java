@@ -1,16 +1,16 @@
 package euphoria.WebsocketJSON;
 
 public class SendEvent extends DataPacket{
-  String id;
-  String parent;
-  String previous_edit_id;
-  int time;
-  SessionView sender;
-  String content;
-  String encryption_key_id;
-  int edited;
-  int deleted;
-  boolean truncated;
+  private String id;
+  private String parent;
+  private String previous_edit_id;
+  private int time;
+  private SessionView sender;
+  private String content;
+  private String encryption_key_id;
+  private int edited;
+  private int deleted;
+  private boolean truncated;
   
   public SendEvent() {}
   

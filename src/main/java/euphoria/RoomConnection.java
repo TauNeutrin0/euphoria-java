@@ -7,22 +7,12 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import euphoria.WebsocketJSON.*;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
-import java.net.MalformedURLException;
 import java.net.URI;
-import java.net.URL;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import javax.swing.event.EventListenerList;
 
@@ -32,7 +22,6 @@ import org.eclipse.jetty.websocket.api.StatusCode;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
-import org.eclipse.jetty.websocket.api.annotations.WebSocket;
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 
@@ -45,12 +34,14 @@ public class RoomConnection {
   private String sessionID;
   private boolean connected = false;
   protected EventListenerList listeners = new EventListenerList();
+  private String room;
                              
   public RoomConnection() {
     this.closeLatch = new CountDownLatch(1);
   }
   
   public Future<Void> createConnection(String room) {
+    this.room=room;
     String destUri = "wss://euphoria.io/room/"+room+"/ws";
     SslContextFactory sslContextFactory = new SslContextFactory();
     sslContextFactory.setTrustAll(true);
@@ -61,16 +52,9 @@ public class RoomConnection {
       ClientUpgradeRequest request = new ClientUpgradeRequest();
       client.connect(this, echoUri, request);
       System.out.printf("Connecting to : %s%n", echoUri);
-      //this.awaitClose(60, TimeUnit.SECONDS);
     } catch (Throwable t) {
       t.printStackTrace();
-    }/* finally {
-      try {
-        client.stop();
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-    }*/
+    }
     return null;
   }
 
@@ -98,44 +82,6 @@ public class RoomConnection {
   public void onConnect(Session session) {
     System.out.println("Connected!");
     this.session = session;
-    /*try {
-      Future<Void> fut;
-      fut = session.getRemote().sendStringByFuture("Hello");
-      fut.get(2, TimeUnit.SECONDS);
-      fut = session.getRemote().sendStringByFuture("Thanks for the conversation.");
-      fut.get(2, TimeUnit.SECONDS);
-      session.close(StatusCode.NORMAL, "I'm done");
-    } catch (Throwable t) {
-      t.printStackTrace();
-    }*/
-    /*addPacketEventListener(new PacketEventListener(){
-
-        @Override
-        public void HelloEvent(PacketEvent arg0) {}
-
-        @Override
-        public void JoinEvent(PacketEvent arg0) {}
-
-        @Override
-        public void NickEvent(PacketEvent arg0) {}
-
-        @Override
-        public void PartEvent(PacketEvent arg0) {}
-
-        @Override
-        public void SendEvent(PacketEvent arg0) {
-          StandardPacket packet = arg0.getPacket();
-          if(((SendEvent)packet.getData()).getSession().getName().equals("TauNeutrin0")){
-            arg0.getRoomConnection().sendServerMessage(((SendEvent)packet.getData()).createReply("@TauNeutrin0 has spoken!"));
-          }
-        }
-
-        @Override
-        public void SnapshotEvent(PacketEvent arg0) {
-            // TODO Auto-generated method stub
-            
-        }
-    });*/
   }
 
   @OnWebSocketMessage
@@ -163,7 +109,6 @@ public class RoomConnection {
             } catch (NoSuchMethodException e) {
               System.out.println("No handler provided for "+packet.getType()+".");
             }
-            //((PacketEventListener) lns[i+1]).myEventOccurred(packet);
           }
         }
       }
@@ -231,4 +176,5 @@ public class RoomConnection {
   public void sendMessage(String message){ sendServerMessage(new Send(message).createPacket());}
   public void sendMessage(String message,String replyId){ sendServerMessage(new Send(message,replyId).createPacket());}
   public void changeNick(String nick){ sendServerMessage(new Nick(nick).createPacket());}
+  public String getRoom() {return room;}
 }

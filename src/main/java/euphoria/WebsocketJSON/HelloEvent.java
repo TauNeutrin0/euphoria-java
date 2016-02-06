@@ -1,7 +1,5 @@
 package euphoria.WebsocketJSON;
 
-import euphoria.RoomConnection;
-
 public class HelloEvent extends DataPacket{
   private String id;
   private PersonalAccountView account;

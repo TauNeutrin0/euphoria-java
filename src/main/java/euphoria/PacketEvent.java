@@ -2,7 +2,6 @@ package euphoria;
 
 import euphoria.WebsocketJSON.StandardPacket;
 
-import java.util.EventListener;
 import java.util.EventObject;
 
 public class PacketEvent extends EventObject {

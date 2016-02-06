@@ -2,8 +2,6 @@
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import euphoria.*;
-import euphoria.PacketEvent;
-import euphoria.WebsocketJSON.*;
 
 public class ExampleBot extends Bot{
   Console console;

@@ -3,21 +3,28 @@ package euphoria;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import euphoria.WebsocketJSON.*;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
+import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import javax.swing.event.EventListenerList;
 
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.websocket.api.Session;
@@ -34,13 +41,48 @@ public class RoomConnection {
   
   private final CountDownLatch closeLatch;
   private Session session;
+  private WebSocketClient client;
   private String sessionID;
   private boolean connected = false;
+  protected EventListenerList listeners = new EventListenerList();
                              
   public RoomConnection() {
     this.closeLatch = new CountDownLatch(1);
   }
+  
+  public Future<Void> createConnection(String room) {
+    String destUri = "wss://euphoria.io/room/"+room+"/ws";
+    SslContextFactory sslContextFactory = new SslContextFactory();
+    sslContextFactory.setTrustAll(true);
+    client = new WebSocketClient(sslContextFactory);
+    try {
+      client.start();
+      URI echoUri = new URI(destUri);
+      ClientUpgradeRequest request = new ClientUpgradeRequest();
+      client.connect(this, echoUri, request);
+      System.out.printf("Connecting to : %s%n", echoUri);
+      //this.awaitClose(60, TimeUnit.SECONDS);
+    } catch (Throwable t) {
+      t.printStackTrace();
+    }/* finally {
+      try {
+        client.stop();
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }*/
+    return null;
+  }
 
+  public void closeConnection(String reason) {
+    session.close(StatusCode.NORMAL, reason);
+    try {
+      client.stop();
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+  
   public boolean awaitClose(int duration, TimeUnit unit) throws InterruptedException {
     return this.closeLatch.await(duration, unit);
   }
@@ -66,38 +108,77 @@ public class RoomConnection {
     } catch (Throwable t) {
       t.printStackTrace();
     }*/
+    /*addPacketEventListener(new PacketEventListener(){
+
+        @Override
+        public void HelloEvent(PacketEvent arg0) {}
+
+        @Override
+        public void JoinEvent(PacketEvent arg0) {}
+
+        @Override
+        public void NickEvent(PacketEvent arg0) {}
+
+        @Override
+        public void PartEvent(PacketEvent arg0) {}
+
+        @Override
+        public void SendEvent(PacketEvent arg0) {
+          StandardPacket packet = arg0.getPacket();
+          if(((SendEvent)packet.getData()).getSession().getName().equals("TauNeutrin0")){
+            arg0.getRoomConnection().sendServerMessage(((SendEvent)packet.getData()).createReply("@TauNeutrin0 has spoken!"));
+          }
+        }
+
+        @Override
+        public void SnapshotEvent(PacketEvent arg0) {
+            // TODO Auto-generated method stub
+            
+        }
+    });*/
   }
 
   @OnWebSocketMessage
   public void onMessage(String msg) {
     JsonObject jsonObj = new JsonParser().parse(msg).getAsJsonObject();
     System.out.println("Got msg: "+jsonObj.get("type").getAsString());
-    if(jsonObj.get("type").getAsString().equals("ping-event")){
+    try{
       StandardPacket packet = createPacketFromJson(jsonObj);
-      StandardPacket reply = ((PingEvent)packet.getData()).createPingReply();
-      sendServerMessage(createJsonFromPacket(reply));
-      /*System.out.println("Ping time: "+((PingEvent)packet.getData()).getTime());
-      Gson gson = new Gson();
-      JsonObject reply = new JsonObject();
-      reply.addProperty("type", "ping-reply");
-      JsonObject data = new JsonObject();
-      data.addProperty("time",jsonObj.get("data").getAsJsonObject().get("time").getAsInt());
-      reply.add("data", data);
-      sendServerMessage(reply);*/
-      //sendServerMessage(gson.toJson(new PingReply()));
-      System.out.println("Sent ping-reply: "+createJsonFromPacket(reply));
-    } else if(jsonObj.get("type").getAsString().equals("hello-event")){
-      sessionID = jsonObj.get("data").getAsJsonObject().get("id").getAsString();
-      changeNick("TauBot");
-      connected=true;
-    } else if(jsonObj.get("type").getAsString().equals("send-event")){
-      if(connected&&jsonObj.get("data").getAsJsonObject().get("sender").getAsJsonObject().get("name").getAsString().equals("TauNeutrin0")){
-        System.out.println("TAU HAS SPOKEN!");
-        if(Math.random()>0.9){
-          sendMessage("Master!",jsonObj.get("data").getAsJsonObject().get("id").getAsString());
+      if(packet.getData().handle(this)){
+        Object[] lns = listeners.getListenerList();
+        PacketEvent evt = new PacketEvent(this,packet);
+        for (int i = 0; i < lns.length; i = i+2) {
+          if (lns[i] == PacketEventListener.class) {
+            java.lang.reflect.Method method;
+            try {
+              method = ((PacketEventListener) lns[i+1]).getClass().getMethod(packet.getData().getClass().getSimpleName(),PacketEvent.class);
+              if(!method.isAccessible()) {
+                method.setAccessible(true);
+              }
+              method.invoke(((PacketEventListener) lns[i+1]),evt);
+            } catch (IllegalArgumentException e) {e.printStackTrace();
+            } catch (IllegalAccessException e) {e.printStackTrace();
+            } catch (InvocationTargetException e) {e.printStackTrace();
+            } catch (SecurityException e) {e.printStackTrace();
+            } catch (NoSuchMethodException e) {
+              System.out.println("No handler provided for "+packet.getType()+".");
+            }
+            //((PacketEventListener) lns[i+1]).myEventOccurred(packet);
+          }
         }
       }
+    } catch (JsonParseException e) {
+      System.out.println("Could not recognise type.");
     }
+    
+  }
+  
+  public void addPacketEventListener(PacketEventListener listener) {
+    listeners.add(PacketEventListener.class, listener);
+    System.out.println("Added listener...");
+  }
+  public void removePacketEventListener(PacketEventListener listener) {
+    listeners.remove(PacketEventListener.class, listener);
   }
   
   public void sendServerMessage(String message) {
@@ -119,30 +200,17 @@ public class RoomConnection {
       e.printStackTrace();
     }
   }
-  
-  public static RoomConnection createConnection(String room) {
-    String destUri = "wss://euphoria.io/room/"+room+"/ws";
-    SslContextFactory sslContextFactory = new SslContextFactory();
-    sslContextFactory.setTrustAll(true);
-    WebSocketClient client = new WebSocketClient(sslContextFactory);
-    RoomConnection socket = new RoomConnection();
+  public void sendServerMessage(StandardPacket pckt) {
+    GsonBuilder gsonBilder = new GsonBuilder();
+    gsonBilder.registerTypeAdapter(StandardPacket.class, new DataAdapter());
+    Gson gson = gsonBilder.create();
     try {
-      client.start();
-      URI echoUri = new URI(destUri);
-      ClientUpgradeRequest request = new ClientUpgradeRequest();
-      client.connect(socket, echoUri, request);
-      System.out.printf("Connecting to : %s%n", echoUri);
-      socket.awaitClose(60, TimeUnit.SECONDS);
-    } catch (Throwable t) {
-      t.printStackTrace();
-    } finally {
-      try {
-        client.stop();
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
+      Future<Void> fut;
+      fut = session.getRemote().sendStringByFuture(gson.toJson(pckt));
+      fut.get(2, TimeUnit.SECONDS);
+    } catch (Throwable e) {
+      e.printStackTrace();
     }
-    return socket;
   }
   
   public StandardPacket createPacketFromJson(JsonObject json) {
@@ -160,33 +228,7 @@ public class RoomConnection {
     return json;
   }
   
-  public int sendMessage(String message, String parentID) {
-    JsonObject send = new JsonObject();
-    send.addProperty("type", "send");
-    JsonObject data = new JsonObject();
-    data.addProperty("content",message);
-    data.addProperty("parent",parentID);
-    send.add("data", data);
-    sendServerMessage(send);
-    return 0;
-  }
-  public int sendMessage(String message) {
-    JsonObject send = new JsonObject();
-    send.addProperty("type", "send");
-    JsonObject data = new JsonObject();
-    data.addProperty("content",message);
-    send.add("data", data);
-    sendServerMessage(send);
-    return 0;
-  }
-  
-  public int changeNick(String nick) {
-    JsonObject nickReq = new JsonObject();
-    nickReq.addProperty("type", "nick");
-    JsonObject data = new JsonObject();
-    data.addProperty("name",nick);
-    nickReq.add("data", data);
-    sendServerMessage(nickReq);
-    return 0;
-  }
+  public void sendMessage(String message){ sendServerMessage(new Send(message).createPacket());}
+  public void sendMessage(String message,String replyId){ sendServerMessage(new Send(message,replyId).createPacket());}
+  public void changeNick(String nick){ sendServerMessage(new Nick(nick).createPacket());}
 }

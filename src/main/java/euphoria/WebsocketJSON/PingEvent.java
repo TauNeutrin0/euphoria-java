@@ -1,18 +1,23 @@
 package euphoria.WebsocketJSON;
 
+import euphoria.RoomConnection;
+
 public class PingEvent extends DataPacket {
-  private static final String type = "ping-event";
   private int time;
   private int next;
   
   public PingEvent(){}
+  
+  public boolean handle(RoomConnection rmCon) {
+    rmCon.sendServerMessage(new PingReply(time).createPacket());
+    return false;
+  }
   
   public int getTime() {
     return time;
   }
   
   public StandardPacket createPingReply() {
-    PingReply reply = new PingReply(time);
-    return reply.createPacket();
+    return new PingReply(time).createPacket();
   }
 }

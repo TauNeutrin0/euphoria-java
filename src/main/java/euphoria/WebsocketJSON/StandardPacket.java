@@ -11,9 +11,14 @@ public class StandardPacket {
   public StandardPacket(DataPacket d){
     data = d;
     type = d.getType();
+    System.out.println(type);
   }
   
   public StandardPacket(){}
+  
+  public String getType() {
+    return type;
+  }
   
   public DataPacket getData() {
     return data;
@@ -21,6 +26,10 @@ public class StandardPacket {
   
   public void setData(DataPacket dP) {
     data=dP;
+  }
+  
+  public String getError() {
+    return error;
   }
   
 }

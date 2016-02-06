@@ -7,31 +7,31 @@ public class StandardEventListener implements PacketEventListener{
     this.nick=nick;
     this.helpText=helpText;
   }
-  public void SendEvent(PacketEvent evt) {
+  public void onSendEvent(MessageEvent evt) {
     SendEvent data = (SendEvent)evt.getPacket().getData();
-    if(data.getMessage().matches("^!ping(?: @"+nick+")?$")){
-      evt.getRoomConnection().sendServerMessage(data.createReply("Pong!"));
+    if(evt.getMessage().matches("^!ping(?: @"+nick+")?$")){
+      evt.reply("Pong!");
     }
-    if(data.getMessage().matches("^!help @"+nick+"$")){
-      evt.getRoomConnection().sendServerMessage(data.createReply(helpText));
+    if(evt.getMessage().matches("^!help @"+nick+"$")){
+      evt.reply(helpText);
     }
-    if(data.getMessage().matches("^!kill @"+nick+"$")){
+    if(evt.getMessage().matches("^!kill @"+nick+"$")){
       evt.getRoomConnection().closeConnection("Killed by room user.");
     }
   }
-  public void SnapshotEvent(PacketEvent evt) {
+  public void onSnapshotEvent(PacketEvent evt) {
     
   }
-  public void HelloEvent(PacketEvent evt) {
+  public void onHelloEvent(PacketEvent evt) {
     evt.getRoomConnection().changeNick(nick);
   }
-  public void NickEvent(PacketEvent evt) {
+  public void onNickEvent(PacketEvent evt) {
     
   }
-  public void JoinEvent(PacketEvent evt) {
+  public void onJoinEvent(PacketEvent evt) {
     
   }
-  public void PartEvent(PacketEvent evt) {
+  public void onPartEvent(PacketEvent evt) {
     
   }
 }

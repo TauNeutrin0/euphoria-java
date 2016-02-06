@@ -14,10 +14,9 @@ public class ExampleBot extends Bot{
     addListener(new StandardEventListener("TauBot","I'm a test bot made by @TauNeutrin0. Hi!"));
     addListener(new MessageEventListener(){
         @Override
-        public void SendEvent(PacketEvent arg0) {
-          SendEvent data = ((SendEvent)arg0.getPacket().getData());
-          if(data.getSession().getName().equals("TauNeutrin0")&&Math.random()>0.9){
-            arg0.getRoomConnection().sendServerMessage(data.createReply("@TauNeutrin0 has spoken!"));
+        public void onSendEvent(MessageEvent arg0) {
+          if(arg0.getSender().equals("TauNeutrin0")&&Math.random()>0.9){
+            arg0.reply("@TauNeutrin0 has spoken!");
           }
         }
     });

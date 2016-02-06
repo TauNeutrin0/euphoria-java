@@ -95,19 +95,23 @@ public class RoomConnection {
         PacketEvent evt = new PacketEvent(this,packet);
         for (int i = 0; i < lns.length; i = i+2) {
           if (lns[i] == PacketEventListener.class) {
-            java.lang.reflect.Method method;
-            try {
-              method = ((PacketEventListener) lns[i+1]).getClass().getMethod(packet.getData().getClass().getSimpleName(),PacketEvent.class);
-              if(!method.isAccessible()) {
-                method.setAccessible(true);
+            if(packet.getType().equals("send-event")) {
+              ((PacketEventListener) lns[i+1]).onSendEvent(new MessageEvent(this,packet));
+            } else {
+              java.lang.reflect.Method method;
+              try {
+                method = ((PacketEventListener) lns[i+1]).getClass().getMethod("on"+packet.getData().getClass().getSimpleName(),PacketEvent.class);
+                if(!method.isAccessible()) {
+                  method.setAccessible(true);
+                }
+                method.invoke(((PacketEventListener) lns[i+1]),evt);
+              } catch (IllegalArgumentException e) {e.printStackTrace();
+              } catch (IllegalAccessException e) {e.printStackTrace();
+              } catch (InvocationTargetException e) {e.printStackTrace();
+              } catch (SecurityException e) {e.printStackTrace();
+              } catch (NoSuchMethodException e) {
+                System.out.println("No handler provided for "+packet.getType()+".");
               }
-              method.invoke(((PacketEventListener) lns[i+1]),evt);
-            } catch (IllegalArgumentException e) {e.printStackTrace();
-            } catch (IllegalAccessException e) {e.printStackTrace();
-            } catch (InvocationTargetException e) {e.printStackTrace();
-            } catch (SecurityException e) {e.printStackTrace();
-            } catch (NoSuchMethodException e) {
-              System.out.println("No handler provided for "+packet.getType()+".");
             }
           }
         }

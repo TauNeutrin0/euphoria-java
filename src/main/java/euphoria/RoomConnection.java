@@ -80,7 +80,7 @@ public class RoomConnection {
 
   @OnWebSocketClose
   public void onClose(int statusCode, String reason) {
-    System.out.printf("Connection closed: %d - %s%n", statusCode, reason);
+    System.out.printf("Connection to "+room+" closed: %d - %s%n", statusCode, reason);
     this.session = null;
     this.closeLatch.countDown();
     Object[] lns = listeners.getListenerList();
@@ -94,7 +94,7 @@ public class RoomConnection {
 
   @OnWebSocketConnect
   public void onConnect(Session session) {
-    System.out.println("Connected!");
+    System.out.println("Connected to "+room+"!");
     this.session = session;
     session.getPolicy().setMaxTextMessageSize(128*1024);
     Object[] lns = listeners.getListenerList();
@@ -109,7 +109,7 @@ public class RoomConnection {
   @OnWebSocketMessage
   public void onMessage(String msg) {
     JsonObject jsonObj = new JsonParser().parse(msg).getAsJsonObject();
-    System.out.println("Got msg: "+jsonObj.get("type").getAsString());
+    //System.out.println("Got msg: "+jsonObj.get("type").getAsString());
     try{
       StandardPacket packet = createPacketFromJson(jsonObj);
       if(packet.getData().handle(this)){
@@ -132,28 +132,28 @@ public class RoomConnection {
               } catch (InvocationTargetException e) {e.printStackTrace();
               } catch (SecurityException e) {e.printStackTrace();
               } catch (NoSuchMethodException e) {
-                System.out.println("No handler provided for "+packet.getType()+".");
+                //System.out.println("No handler provided for "+packet.getType()+".");
               }
             }
           }
         }
       }
     } catch (JsonParseException e) {
-      System.out.println("Could not recognise type.");
+      //System.out.println("Could not recognise type.");
     }
     
   }
   
   public void addPacketEventListener(PacketEventListener listener) {
     listeners.add(PacketEventListener.class, listener);
-    System.out.println("Added listener...");
+    //System.out.println("Added listener...");
   }
   public void removePacketEventListener(PacketEventListener listener) {
     listeners.remove(PacketEventListener.class, listener);
   }
   public void addConnectionEventListener(ConnectionEventListener listener) {
     listeners.add(ConnectionEventListener.class, listener);
-    System.out.println("Added listener...");
+    //System.out.println("Added listener...");
   }
   public void removeConnectionEventListener(ConnectionEventListener listener) {
     listeners.remove(ConnectionEventListener.class, listener);

@@ -16,6 +16,7 @@ public class StandardEventListener implements PacketEventListener{
       evt.reply(helpText);
     }
     if(evt.getMessage().matches("^!kill @"+nick+"$")){
+      evt.reply("/me is now exiting.");
       evt.getRoomConnection().closeConnection("Killed by room user.");
     }
   }

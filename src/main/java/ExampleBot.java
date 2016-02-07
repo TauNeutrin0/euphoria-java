@@ -8,7 +8,7 @@ public class ExampleBot extends Bot{
   
   public ExampleBot() {
     initConsole();
-    connectRoom("xkcd");
+    connectRoom("bots");
     addListener(new StandardEventListener("TauBot","I'm a test bot made by @TauNeutrin0. Hi!"));
     addListener(new MessageEventListener(){
         @Override

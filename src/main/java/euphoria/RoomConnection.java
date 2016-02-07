@@ -39,6 +39,11 @@ public class RoomConnection {
   public RoomConnection() {
     this.closeLatch = new CountDownLatch(1);
   }
+                             
+  public RoomConnection(EventListenerList eLL) {
+    this.closeLatch = new CountDownLatch(1);
+    listeners=eLL;
+  }
   
   public Future<Void> createConnection(String room) {
     this.room=room;
@@ -46,6 +51,7 @@ public class RoomConnection {
     SslContextFactory sslContextFactory = new SslContextFactory();
     sslContextFactory.setTrustAll(true);
     client = new WebSocketClient(sslContextFactory);
+    
     try {
       client.start();
       URI echoUri = new URI(destUri);
@@ -63,7 +69,8 @@ public class RoomConnection {
     try {
       client.stop();
     } catch (Exception e) {
-      e.printStackTrace();
+      System.out.println("Caught exception at connection close.");
+      //e.printStackTrace();
     }
   }
   
@@ -76,12 +83,27 @@ public class RoomConnection {
     System.out.printf("Connection closed: %d - %s%n", statusCode, reason);
     this.session = null;
     this.closeLatch.countDown();
+    Object[] lns = listeners.getListenerList();
+    ConnectionEvent evt = new ConnectionEvent(this,room);
+    for (int i = 0; i < lns.length; i = i+2) {
+      if (lns[i] == ConnectionEventListener.class) {
+        ((ConnectionEventListener) lns[i+1]).onDisconnect(evt);
+      }
+    }
   }
 
   @OnWebSocketConnect
   public void onConnect(Session session) {
     System.out.println("Connected!");
     this.session = session;
+    session.getPolicy().setMaxTextMessageSize(128*1024);
+    Object[] lns = listeners.getListenerList();
+    ConnectionEvent evt = new ConnectionEvent(this,room);
+    for (int i = 0; i < lns.length; i = i+2) {
+      if (lns[i] == ConnectionEventListener.class) {
+        ((ConnectionEventListener) lns[i+1]).onConnect(evt);
+      }
+    }
   }
 
   @OnWebSocketMessage
@@ -128,6 +150,13 @@ public class RoomConnection {
   }
   public void removePacketEventListener(PacketEventListener listener) {
     listeners.remove(PacketEventListener.class, listener);
+  }
+  public void addConnectionEventListener(ConnectionEventListener listener) {
+    listeners.add(ConnectionEventListener.class, listener);
+    System.out.println("Added listener...");
+  }
+  public void removeConnectionEventListener(ConnectionEventListener listener) {
+    listeners.remove(ConnectionEventListener.class, listener);
   }
   
   public void sendServerMessage(String message) {

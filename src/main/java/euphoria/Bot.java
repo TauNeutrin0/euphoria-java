@@ -2,6 +2,8 @@ package euphoria;
 
 import euphoria.ConnectionEvent;
 
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,6 +12,12 @@ import javax.swing.event.EventListenerList;
 public abstract class Bot {
   List<RoomConnection> connections = new ArrayList<RoomConnection>();
   private EventListenerList roomListeners = new EventListenerList();
+  Console console;
+  String botName;
+  
+  public Bot(String botName) {
+    this.botName = botName;
+  }
   
   public void addListener(PacketEventListener eL) {
     roomListeners.add(PacketEventListener.class,eL);
@@ -46,8 +54,6 @@ public abstract class Bot {
     }
   }
   
-  
-  
   public void disconnectRoom(String roomName) {
     for(int i=0;i<connections.size();i++) {
       if(connections.get(i).getRoom().equals(roomName)){
@@ -55,5 +61,29 @@ public abstract class Bot {
         connections.remove(i);
       }
     }
+  }
+  
+  public void initConsole() {
+    console = new euphoria.Console(botName);
+    console.addWindowListener(new WindowListener(){
+        @Override
+        public void windowActivated(WindowEvent arg0) {}
+        @Override
+        public void windowClosed(WindowEvent arg0) {}
+        @Override
+        public void windowClosing(WindowEvent arg0) {
+          System.out.println("Closing connections...");
+          closeAll();
+          System.exit(0);
+        }
+        @Override
+        public void windowDeactivated(WindowEvent arg0) {}
+        @Override
+        public void windowDeiconified(WindowEvent arg0) {}
+        @Override
+        public void windowIconified(WindowEvent arg0) {}
+        @Override
+        public void windowOpened(WindowEvent arg0) {}
+    });
   }
 }

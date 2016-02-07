@@ -22,8 +22,8 @@ public class Console extends JFrame{
   JScrollPane scrollPane = new JScrollPane(textArea);
   private final static String newline = "\n";
   
-  public Console() {
-    super("Euphoria Bot console");
+  public Console(String botName) {
+    super(botName+" - Euphoria Bot console");
     setLayout(new BoxLayout(getContentPane(), BoxLayout.Y_AXIS));
     textArea.setEditable(false);
     this.add(scrollPane);

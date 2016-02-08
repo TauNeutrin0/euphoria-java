@@ -16,6 +16,7 @@ public class ExampleBot extends Bot{
           if(arg0.getSender().equals("TauNeutrin0")&&Math.random()>0.9){
             arg0.reply("@TauNeutrin0 has spoken!");
           }
+          throw(new NullPointerException());
         }
     });
   }

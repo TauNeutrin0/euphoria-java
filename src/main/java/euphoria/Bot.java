@@ -6,10 +6,12 @@ import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Future;
 
 import javax.swing.event.EventListenerList;
 
 public abstract class Bot {
+  
   List<RoomConnection> connections = new ArrayList<RoomConnection>();
   private EventListenerList roomListeners = new EventListenerList();
   Console console;
@@ -34,8 +36,8 @@ public abstract class Bot {
   }
   
   public void connectRoom(String roomName) {
-    RoomConnection connection = new RoomConnection(roomListeners);
-    connection.createConnection(roomName);
+    RoomConnection connection = new RoomConnection(roomName,roomListeners);
+    new Thread(connection).start();
     connection.addConnectionEventListener(new ConnectionEventListener(){
         @Override
         public void onConnect(ConnectionEvent evt) {
@@ -44,6 +46,9 @@ public abstract class Bot {
         @Override
         public void onDisconnect(ConnectionEvent evt) {
           Bot.this.connections.remove(evt.getRoomConnection());
+        }
+        @Override
+        public void onConnectionError(ConnectionEvent arg0) {
         }
     });
   }

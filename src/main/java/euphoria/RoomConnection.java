@@ -7,10 +7,14 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import euphoria.WebsocketJSON.*;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
+import java.net.URISyntaxException;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -26,42 +30,64 @@ import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 
 @org.eclipse.jetty.websocket.api.annotations.WebSocket
-public class RoomConnection {
-  
+public class RoomConnection implements Runnable{
+  private final ExecutorService pool = Executors.newFixedThreadPool(1);
   private final CountDownLatch closeLatch;
+  private Thread initThread;
   private Session session;
   private WebSocketClient client;
   private String sessionID;
-  private boolean connected = false;
   protected EventListenerList listeners = new EventListenerList();
   private String room;
                              
-  public RoomConnection() {
+  public RoomConnection(String room) {
+    this.room=room;
     this.closeLatch = new CountDownLatch(1);
   }
                              
-  public RoomConnection(EventListenerList eLL) {
+  public RoomConnection(String room, EventListenerList eLL) {
+    this.room=room;
     this.closeLatch = new CountDownLatch(1);
     listeners=eLL;
   }
   
-  public Future<Void> createConnection(String room) {
-    this.room=room;
+  public void run() {
     String destUri = "wss://euphoria.io/room/"+room+"/ws";
     SslContextFactory sslContextFactory = new SslContextFactory();
     sslContextFactory.setTrustAll(true);
     client = new WebSocketClient(sslContextFactory);
-    
+    initThread = Thread.currentThread();
     try {
-      client.start();
       URI echoUri = new URI(destUri);
+      try {
+        client.start();
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
       ClientUpgradeRequest request = new ClientUpgradeRequest();
       client.connect(this, echoUri, request);
       System.out.printf("Connecting to : %s%n", echoUri);
-    } catch (Throwable t) {
-      t.printStackTrace();
+      Thread.sleep(20000);
+      try {
+        client.stop();
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+      System.out.println("Could not connect to "+room+".");
+      Object[] lns = listeners.getListenerList();
+      ConnectionEvent evt = new ConnectionEvent(this,room);
+      for (int i = 0; i < lns.length; i = i+2) {
+        if (lns[i] == ConnectionEventListener.class) {
+          ((ConnectionEventListener) lns[i+1]).onConnectionError(evt);
+        }
+      }
+    } catch (IOException e) {
+        e.printStackTrace();
+    } catch (InterruptedException e) {
+      
+    } catch (URISyntaxException e) {
+        e.printStackTrace();
     }
-    return null;
   }
 
   public void closeConnection(String reason) {
@@ -70,19 +96,17 @@ public class RoomConnection {
       client.stop();
     } catch (Exception e) {
       System.out.println("Caught exception at connection close.");
-      //e.printStackTrace();
     }
   }
   
-  /*public boolean awaitClose(int duration, TimeUnit unit) throws InterruptedException {
+  public boolean awaitClose(int duration, TimeUnit unit) throws InterruptedException {
     return this.closeLatch.await(duration, unit);
-  }*/
+  }
 
   @OnWebSocketClose
   public void onClose(int statusCode, String reason) {
     System.out.printf("Connection to "+room+" closed: %d - %s%n", statusCode, reason);
     this.session = null;
-    this.closeLatch.countDown();
     Object[] lns = listeners.getListenerList();
     ConnectionEvent evt = new ConnectionEvent(this,room);
     for (int i = 0; i < lns.length; i = i+2) {
@@ -97,6 +121,7 @@ public class RoomConnection {
     System.out.println("Connected to "+room+"!");
     this.session = session;
     session.getPolicy().setMaxTextMessageSize(128*1024);
+    initThread.interrupt();
     Object[] lns = listeners.getListenerList();
     ConnectionEvent evt = new ConnectionEvent(this,room);
     for (int i = 0; i < lns.length; i = i+2) {
@@ -109,7 +134,6 @@ public class RoomConnection {
   @OnWebSocketMessage
   public void onMessage(String msg) {
     JsonObject jsonObj = new JsonParser().parse(msg).getAsJsonObject();
-    //System.out.println("Got msg: "+jsonObj.get("type").getAsString());
     try{
       StandardPacket packet = createPacketFromJson(jsonObj);
       if(packet.getData().handle(this)){
@@ -146,14 +170,12 @@ public class RoomConnection {
   
   public void addPacketEventListener(PacketEventListener listener) {
     listeners.add(PacketEventListener.class, listener);
-    //System.out.println("Added listener...");
   }
   public void removePacketEventListener(PacketEventListener listener) {
     listeners.remove(PacketEventListener.class, listener);
   }
   public void addConnectionEventListener(ConnectionEventListener listener) {
     listeners.add(ConnectionEventListener.class, listener);
-    //System.out.println("Added listener...");
   }
   public void removeConnectionEventListener(ConnectionEventListener listener) {
     listeners.remove(ConnectionEventListener.class, listener);

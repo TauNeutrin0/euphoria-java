@@ -11,7 +11,6 @@ public class StandardPacket {
   public StandardPacket(DataPacket d){
     data = d;
     type = d.getType();
-    System.out.println(type);
   }
   
   public StandardPacket(){}

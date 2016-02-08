@@ -34,7 +34,7 @@ public class RoomConnection implements Runnable{
   private WebSocketClient client;
   private String sessionID;
   protected EventListenerList listeners = new EventListenerList();
-  protected EventListenerList sharedListeners = new EventListenerList();
+  protected EventListenerList sharedListeners;
   private String room;
                              
   public RoomConnection(String room) {

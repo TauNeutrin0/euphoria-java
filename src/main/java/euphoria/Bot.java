@@ -6,7 +6,6 @@ import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Future;
 
 import javax.swing.event.EventListenerList;
 
@@ -19,39 +18,47 @@ public abstract class Bot {
   
   public Bot(String botName) {
     this.botName = botName;
+    roomListeners.add(ConnectionEventListener.class, new ConnectionEventListener(){
+          @Override
+          public void onConnect(ConnectionEvent evt) {
+            Bot.this.connections.add(evt.getRoomConnection());
+          }
+          @Override
+          public void onDisconnect(ConnectionEvent evt) {
+            Bot.this.connections.remove(evt.getRoomConnection());
+          }
+          @Override
+          public void onConnectionError(ConnectionEvent evt) {
+          }
+      });
   }
   
   public void addListener(PacketEventListener eL) {
-    roomListeners.add(PacketEventListener.class,eL);
-    for(int i=0;i<connections.size();i++) {
-      connections.get(i).addPacketEventListener(eL);
-    }
+    roomListeners.add(PacketEventListener.class, eL);
   }
   
   public void removeListener(PacketEventListener eL) {
-    roomListeners.remove(PacketEventListener.class,eL);
-    for(int i=0;i<connections.size();i++) {
-      connections.get(i).removePacketEventListener(eL);
-    }
+    roomListeners.remove(PacketEventListener.class, eL);
   }
   
   public void connectRoom(String roomName) {
-    RoomConnection connection = new RoomConnection(roomName,roomListeners);
-    new Thread(connection).start();
-    connection.addConnectionEventListener(new ConnectionEventListener(){
-        @Override
-        public void onConnect(ConnectionEvent evt) {
-          Bot.this.connections.add(evt.getRoomConnection());
-        }
-        @Override
-        public void onDisconnect(ConnectionEvent evt) {
-          Bot.this.connections.remove(evt.getRoomConnection());
-        }
-        @Override
-        public void onConnectionError(ConnectionEvent arg0) {
-        }
-    });
+    if(!isConnected(roomName)) {
+      RoomConnection connection = new RoomConnection(roomName, roomListeners);
+      new Thread(connection).start();
+    }
   }
+  
+  public RoomConnection createRoomConnection(String roomName){
+    if(isConnected(roomName)){
+      return null;
+    } else {
+      RoomConnection connection = new RoomConnection(roomName, roomListeners);
+      return connection;
+    }
+  }
+  
+  public void startRoomConnection(RoomConnection connection) { new Thread(connection).start();}
+  
   
   public void closeAll() {
     for(int i=0;i<connections.size();i++) {
@@ -66,6 +73,17 @@ public abstract class Bot {
         connections.remove(i);
       }
     }
+  }
+  
+  public boolean isConnected(String roomName) {
+    boolean connected=false;
+    for(int i=0;i<connections.size();i++) {
+      if(connections.get(i).getRoom().equals(roomName)){
+        connected=true;
+        break;
+      }
+    }
+    return connected;
   }
   
   public void initConsole() {

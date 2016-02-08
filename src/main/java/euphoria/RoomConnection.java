@@ -12,9 +12,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -26,29 +23,26 @@ import org.eclipse.jetty.websocket.api.StatusCode;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
+import org.eclipse.jetty.websocket.api.annotations.WebSocket;
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 
-@org.eclipse.jetty.websocket.api.annotations.WebSocket
+@WebSocket
 public class RoomConnection implements Runnable{
-  private final ExecutorService pool = Executors.newFixedThreadPool(1);
-  private final CountDownLatch closeLatch;
   private Thread initThread;
   private Session session;
   private WebSocketClient client;
   private String sessionID;
   protected EventListenerList listeners = new EventListenerList();
+  protected EventListenerList sharedListeners = new EventListenerList();
   private String room;
                              
   public RoomConnection(String room) {
     this.room=room;
-    this.closeLatch = new CountDownLatch(1);
   }
-                             
-  public RoomConnection(String room, EventListenerList eLL) {
+  public RoomConnection(String room, EventListenerList shared) {
+    sharedListeners = shared;
     this.room=room;
-    this.closeLatch = new CountDownLatch(1);
-    listeners=eLL;
   }
   
   public void run() {
@@ -81,6 +75,12 @@ public class RoomConnection implements Runnable{
           ((ConnectionEventListener) lns[i+1]).onConnectionError(evt);
         }
       }
+      lns = sharedListeners.getListenerList();
+      for (int i = 0; i < lns.length; i = i+2) {
+        if (lns[i] == ConnectionEventListener.class) {
+          ((ConnectionEventListener) lns[i+1]).onConnectionError(evt);
+        }
+      }
     } catch (IOException e) {
         e.printStackTrace();
     } catch (InterruptedException e) {
@@ -98,10 +98,6 @@ public class RoomConnection implements Runnable{
       System.out.println("Caught exception at connection close.");
     }
   }
-  
-  public boolean awaitClose(int duration, TimeUnit unit) throws InterruptedException {
-    return this.closeLatch.await(duration, unit);
-  }
 
   @OnWebSocketClose
   public void onClose(int statusCode, String reason) {
@@ -109,6 +105,12 @@ public class RoomConnection implements Runnable{
     this.session = null;
     Object[] lns = listeners.getListenerList();
     ConnectionEvent evt = new ConnectionEvent(this,room);
+    for (int i = 0; i < lns.length; i = i+2) {
+      if (lns[i] == ConnectionEventListener.class) {
+        ((ConnectionEventListener) lns[i+1]).onDisconnect(evt);
+      }
+    }
+    lns = sharedListeners.getListenerList();
     for (int i = 0; i < lns.length; i = i+2) {
       if (lns[i] == ConnectionEventListener.class) {
         ((ConnectionEventListener) lns[i+1]).onDisconnect(evt);
@@ -129,6 +131,12 @@ public class RoomConnection implements Runnable{
         ((ConnectionEventListener) lns[i+1]).onConnect(evt);
       }
     }
+    lns = sharedListeners.getListenerList();
+    for (int i = 0; i < lns.length; i = i+2) {
+      if (lns[i] == ConnectionEventListener.class) {
+        ((ConnectionEventListener) lns[i+1]).onConnect(evt);
+      }
+    }
   }
 
   @OnWebSocketMessage
@@ -137,7 +145,7 @@ public class RoomConnection implements Runnable{
     try{
       StandardPacket packet = createPacketFromJson(jsonObj);
       if(packet.getData().handle(this)){
-        Object[] lns = listeners.getListenerList();
+        Object[] lns = sharedListeners.getListenerList();
         PacketEvent evt = new PacketEvent(this,packet);
         for (int i = 0; i < lns.length; i = i+2) {
           if (lns[i] == PacketEventListener.class) {

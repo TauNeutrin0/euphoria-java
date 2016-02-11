@@ -4,14 +4,14 @@ import euphoria.ConnectionEvent;
 
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import javax.swing.event.EventListenerList;
 
 public abstract class Bot {
   
-  List<RoomConnection> connections = new ArrayList<RoomConnection>();
+  List<RoomConnection> connections = new LinkedList<RoomConnection>();
   private EventListenerList roomListeners = new EventListenerList();
   Console console;
   String botName;
@@ -62,7 +62,11 @@ public abstract class Bot {
   
   public void closeAll() {
     for(int i=0;i<connections.size();i++) {
-      connections.get(i).closeConnection("Program exiting...");
+      if(connections.get(i)!=null) {
+        connections.get(i).closeConnection("Program exiting.");
+      } else {
+        System.out.println("Already closed connection.");
+      }
     }
   }
   

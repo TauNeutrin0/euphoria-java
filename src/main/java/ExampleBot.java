@@ -1,15 +1,18 @@
 
+import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.google.gson.JsonObject;
 import euphoria.*;
-import euphoria.ConnectionEvent;
 
 public class ExampleBot extends Bot{
+  FileIO dataFile;
   
   public ExampleBot() {
     super("TauBot");
     initConsole();
+    dataFile = new FileIO("data");
     connectRoom("bots");
     addListener(new StandardEventListener("TauBot","I'm a test bot made by @TauNeutrin0. Hi!"));
     addListener(new MessageEventListener(){
@@ -43,6 +46,32 @@ public class ExampleBot extends Bot{
                 });
                 startRoomConnection(c);
               }
+            }
+          } else if(evt.getMessage().matches("^!set [0-9] [\\s\\S]+$")) {
+            Pattern r = Pattern.compile("^!set ([0-9]) ([\\s\\S]+)$");
+            Matcher m = r.matcher(evt.getMessage());
+            if (m.find()) {
+              JsonObject obj = dataFile.getJson();
+              obj.addProperty(m.group(1), m.group(2));
+              //System.out.println(m.group(1)+" "+m.group(2));
+              try {
+                dataFile.setJson(obj);
+                evt.reply("Set "+m.group(1)+": "+m.group(2)+".");
+              } catch (IOException e) {
+                  evt.reply("Could not set "+m.group(1)+".");
+              }
+            }
+          } else if(evt.getMessage().matches("^!get [0-9]$")) {
+            Pattern r = Pattern.compile("^!get ([0-9])$");
+            Matcher m = r.matcher(evt.getMessage());
+            if (m.find()) {
+              JsonObject obj = dataFile.getJson();
+              if(obj.has(m.group(1))) {
+                evt.reply(obj.get(m.group(1)).getAsString());
+              } else {
+                evt.reply("Nothing stored in "+m.group(1)+".");
+              }
+              
             }
           }
         }

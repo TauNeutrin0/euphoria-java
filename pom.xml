@@ -4,30 +4,29 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.github.TauNeutrin0</groupId>
   <artifactId>euphoria-java</artifactId>
-  <version>v0.3.2-beta</version>
+  <version>v0.4-beta</version>
   <packaging>jar</packaging>
   <build>
   	 <plugins>
       <plugin>
-        <artifactId>maven-assembly-plugin</artifactId>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>2.4.3</version>
+        <configuration>
+          <transformers>
+            <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+              <mainClass>ExampleBot</mainClass>
+            </transformer>
+          </transformers>
+        </configuration>
         <executions>
           <execution>
             <phase>package</phase>
             <goals>
-              <goal>single</goal>
+              <goal>shade</goal>
             </goals>
           </execution>
         </executions>
-        <configuration>
-          <descriptorRefs>
-            <descriptorRef>jar-with-dependencies</descriptorRef>
-          </descriptorRefs>
-          <archive>
-            <manifest>
-              <mainClass>ExampleBot</mainClass>
-            </manifest>
-          </archive>
-        </configuration>
       </plugin>
     </plugins>
   </build>

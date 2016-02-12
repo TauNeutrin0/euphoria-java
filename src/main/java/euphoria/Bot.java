@@ -74,7 +74,6 @@ public abstract class Bot {
     for(int i=0;i<connections.size();i++) {
       if(connections.get(i).getRoom().equals(roomName)){
         connections.get(i).closeConnection("Bot disconnecting...");
-        connections.remove(i);
       }
     }
   }

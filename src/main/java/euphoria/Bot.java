@@ -12,6 +12,7 @@ import javax.swing.event.EventListenerList;
 public abstract class Bot {
   
   List<RoomConnection> connections = new LinkedList<RoomConnection>();
+  List<RoomConnection> pendingConnections = new LinkedList<RoomConnection>();
   private EventListenerList roomListeners = new EventListenerList();
   Console console;
   String botName;
@@ -22,6 +23,9 @@ public abstract class Bot {
           @Override
           public void onConnect(ConnectionEvent evt) {
             Bot.this.connections.add(evt.getRoomConnection());
+            if(Bot.this.pendingConnections.contains(evt.getRoomConnection())) {
+              Bot.this.pendingConnections.remove(evt.getRoomConnection());
+            }
           }
           @Override
           public void onDisconnect(ConnectionEvent evt) {
@@ -29,6 +33,9 @@ public abstract class Bot {
           }
           @Override
           public void onConnectionError(ConnectionEvent evt) {
+            if(Bot.this.pendingConnections.contains(evt.getRoomConnection())) {
+              Bot.this.pendingConnections.remove(evt.getRoomConnection());
+            }
           }
       });
   }
@@ -42,8 +49,9 @@ public abstract class Bot {
   }
   
   public void connectRoom(String roomName) {
-    if(!isConnected(roomName)) {
+    if(!isConnected(roomName)&&!isPending(roomName)) {
       RoomConnection connection = new RoomConnection(roomName, roomListeners);
+      pendingConnections.add(connection);
       new Thread(connection).start();
     }
   }
@@ -87,6 +95,17 @@ public abstract class Bot {
       }
     }
     return connected;
+  }
+  
+  public boolean isPending(String roomName) {
+    boolean pending=false;
+    for(int i=0;i<pendingConnections.size();i++) {
+      if(pendingConnections.get(i).getRoom().equals(roomName)){
+        pending=true;
+        break;
+      }
+    }
+    return pending;
   }
   
   public void initConsole() {

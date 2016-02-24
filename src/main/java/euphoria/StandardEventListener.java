@@ -19,6 +19,10 @@ public class StandardEventListener implements PacketEventListener{
       evt.reply("/me is now exiting.");
       evt.getRoomConnection().closeConnection("Killed by room user.");
     }
+    if(evt.getMessage().matches("^!pause @"+nick+"$")){
+      evt.reply("/me has been paused.");
+      evt.getRoomConnection().pause(nick);
+    }
   }
   public void onSnapshotEvent(PacketEvent evt) {
     

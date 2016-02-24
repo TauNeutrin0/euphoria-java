@@ -1,6 +1,7 @@
 package euphoria;
 
 import euphoria.ConnectionEvent;
+import euphoria.ConnectionEventListener;
 
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
@@ -40,12 +41,31 @@ public abstract class Bot {
       });
   }
   
-  public void addListener(PacketEventListener eL) {
+  public void addPacketEventListener(PacketEventListener eL) {
     roomListeners.add(PacketEventListener.class, eL);
   }
   
-  public void removeListener(PacketEventListener eL) {
+  public void removePacketEventListener(PacketEventListener eL) {
     roomListeners.remove(PacketEventListener.class, eL);
+  }
+  
+  public void addConnectionEventListener(ConnectionEventListener eL) {
+    roomListeners.add(ConnectionEventListener.class, eL);
+  }
+  
+  public void removeConnectionEventListener(ConnectionEventListener eL) {
+    roomListeners.remove(ConnectionEventListener.class, eL);
+  }
+  
+  public RoomConnection getRoomConnection(String room) throws RoomNotConnectedException{
+    for(int i=0;i<connections.size();i++) {
+      if(connections.get(i)!=null) {
+        if(connections.get(i).getRoom().equals(room)){
+          return connections.get(i);
+        }
+      }
+    }
+    throw new RoomNotConnectedException();
   }
   
   public void connectRoom(String roomName) {

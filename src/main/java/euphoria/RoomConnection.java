@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
+import euphoria.PausedEventListener;
 import euphoria.WebsocketJSON.*;
 
 import java.io.IOException;
@@ -12,6 +13,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
+import java.util.EventListener;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -35,7 +37,10 @@ public class RoomConnection implements Runnable{
   private String sessionID;
   protected EventListenerList listeners = new EventListenerList();
   protected EventListenerList sharedListeners;
+  private PausedEventListener pauseListener = new PausedEventListener(this);
+  private boolean isPaused = false;
   private String room;
+  
                              
   public RoomConnection(String room) {
     this.room=room;
@@ -144,11 +149,17 @@ public class RoomConnection implements Runnable{
     JsonObject jsonObj = new JsonParser().parse(msg).getAsJsonObject();
     try{
       StandardPacket packet = createPacketFromJson(jsonObj);
-      if(packet.getData().handle(this)){
+      if(isPaused){
+        if(packet.getType().equals("send-event")) {
+          pauseListener.onSendEvent(new MessageEvent(this,packet));
+        }
+      } else if(packet.getData().handle(this)){
+        
+        
         Object[] lns = sharedListeners.getListenerList();
         PacketEvent evt = new PacketEvent(this,packet);
         for (int i = 0; i < lns.length; i = i+2) {
-          if (lns[i] == PacketEventListener.class) {
+          if (lns[i] == PacketEventListener.class&&!isPaused) {
             if(packet.getType().equals("send-event")) {
               ((PacketEventListener) lns[i+1]).onSendEvent(new MessageEvent(this,packet));
             } else {
@@ -169,6 +180,34 @@ public class RoomConnection implements Runnable{
             }
           }
         }
+        
+        
+        lns = listeners.getListenerList();
+        evt = new PacketEvent(this,packet);
+        for (int i = 0; i < lns.length; i = i+2) {
+          if (lns[i] == PacketEventListener.class&&!isPaused) {
+            if(packet.getType().equals("send-event")) {
+              ((PacketEventListener) lns[i+1]).onSendEvent(new MessageEvent(this,packet));
+            } else {
+              java.lang.reflect.Method method;
+              try {
+                method = ((PacketEventListener) lns[i+1]).getClass().getMethod("on"+packet.getData().getClass().getSimpleName(),PacketEvent.class);
+                if(!method.isAccessible()) {
+                  method.setAccessible(true);
+                }
+                method.invoke(((PacketEventListener) lns[i+1]),evt);
+              } catch (IllegalArgumentException e) {e.printStackTrace();
+              } catch (IllegalAccessException e) {e.printStackTrace();
+              } catch (InvocationTargetException e) {e.printStackTrace();
+              } catch (SecurityException e) {e.printStackTrace();
+              } catch (NoSuchMethodException e) {
+                //System.out.println("No handler provided for "+packet.getType()+".");
+              }
+            }
+          }
+        }
+        
+        
       }
     } catch (JsonParseException e) {
       //System.out.println("Could not recognise type.");
@@ -189,6 +228,19 @@ public class RoomConnection implements Runnable{
     listeners.remove(ConnectionEventListener.class, listener);
   }
   
+  public void setCustomPauseListener(PausedEventListener listener) {
+    pauseListener = listener;
+  }
+  
+  public void pause(String nick) {
+    changeNick(nick);
+    pauseListener.setNick(nick);
+    isPaused=true;
+  }
+  public void unpause() {
+    isPaused=false;
+  }
+  
   public void sendServerMessage(String message) {
     try {
       Future<Void> fut;
@@ -198,6 +250,7 @@ public class RoomConnection implements Runnable{
       e.printStackTrace();
     }
   }
+  
   public void sendServerMessage(JsonObject message) {
     Gson gson = new Gson();
     try {
@@ -208,6 +261,7 @@ public class RoomConnection implements Runnable{
       e.printStackTrace();
     }
   }
+  
   public void sendServerMessage(StandardPacket pckt) {
     GsonBuilder gsonBilder = new GsonBuilder();
     gsonBilder.registerTypeAdapter(StandardPacket.class, new DataAdapter());
@@ -221,14 +275,14 @@ public class RoomConnection implements Runnable{
     }
   }
   
-  public StandardPacket createPacketFromJson(JsonObject json) {
+  private StandardPacket createPacketFromJson(JsonObject json) {
     GsonBuilder gsonBilder = new GsonBuilder();
     gsonBilder.registerTypeAdapter(StandardPacket.class, new DataAdapter());
     Gson gson = gsonBilder.create();
     StandardPacket packet = gson.fromJson(json,StandardPacket.class);
     return packet;
   }
-  public String createJsonFromPacket(StandardPacket pckt) {
+  private String createJsonFromPacket(StandardPacket pckt) {
     GsonBuilder gsonBilder = new GsonBuilder();
     gsonBilder.registerTypeAdapter(StandardPacket.class, new DataAdapter());
     Gson gson = gsonBilder.create();

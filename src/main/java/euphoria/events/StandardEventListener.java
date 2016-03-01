@@ -1,5 +1,5 @@
-package euphoria;
-import euphoria.WebsocketJSON.*;
+package euphoria.events;
+
 public class StandardEventListener implements PacketEventListener{
   String nick;
   String helpText;
@@ -8,7 +8,6 @@ public class StandardEventListener implements PacketEventListener{
     this.helpText=helpText;
   }
   public void onSendEvent(MessageEvent evt) {
-    SendEvent data = (SendEvent)evt.getPacket().getData();
     if(evt.getMessage().matches("^!ping(?: @"+nick+")?$")){
       evt.reply("Pong!");
     }

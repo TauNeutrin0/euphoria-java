@@ -1,5 +1,7 @@
 package euphoria;
 
+import euphoria.events.ConsoleEventListener;
+
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
@@ -12,14 +14,16 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
+import javax.swing.event.EventListenerList;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
 
 public class Console extends JFrame{
   
-  JTextField textField = new JTextField(50);
-  JTextArea textArea = new JTextArea(30,50);
-  JScrollPane scrollPane = new JScrollPane(textArea);
+  private JTextField textField = new JTextField(50);
+  private JTextArea textArea = new JTextArea(50,38);
+  private JScrollPane scrollPane = new JScrollPane(textArea);
+  private EventListenerList listeners = new EventListenerList();
   private final static String newline = "\n";
   
   public Console(String botName) {
@@ -56,6 +60,12 @@ public class Console extends JFrame{
   
   public void submitCommand() {
     updateTextArea(textField.getText()+newline);
+    Object[] lns = listeners.getListenerList();
+    for (int i = 0; i < lns.length; i = i+2) {
+      if (lns[i] == ConsoleEventListener.class) {
+        ((ConsoleEventListener) lns[i+1]).onCommand(textField.getText());
+      }
+    }
     textField.setText("");
   }
   
@@ -79,5 +89,12 @@ public class Console extends JFrame{
 
     System.setOut(new PrintStream(out, true));
     System.setErr(new PrintStream(out, true));
+  }
+  
+  public void addListener(ConsoleEventListener evtLst) {
+    listeners.add(ConsoleEventListener.class, evtLst);
+  }
+  public void removeListener(ConsoleEventListener evtLst) {
+    listeners.remove(ConsoleEventListener.class, evtLst);
   }
 }

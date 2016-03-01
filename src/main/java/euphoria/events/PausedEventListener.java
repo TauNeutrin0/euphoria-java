@@ -1,6 +1,6 @@
-package euphoria;
+package euphoria.events;
 
-import euphoria.MessageEvent;
+import euphoria.RoomConnection;
 
 public class PausedEventListener extends MessageEventListener{
   private RoomConnection room;

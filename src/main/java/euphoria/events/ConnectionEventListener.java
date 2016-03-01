@@ -1,4 +1,4 @@
-package euphoria;
+package euphoria.events;
 
 import java.util.EventListener;
 

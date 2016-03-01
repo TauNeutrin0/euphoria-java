@@ -1,6 +1,7 @@
-package euphoria;
+package euphoria.events;
 
-import euphoria.WebsocketJSON.StandardPacket;
+import euphoria.RoomConnection;
+import euphoria.packets.StandardPacket;
 
 import java.util.EventObject;
 

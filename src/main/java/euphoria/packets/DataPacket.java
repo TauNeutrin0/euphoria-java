@@ -1,4 +1,4 @@
-package euphoria.WebsocketJSON;
+package euphoria.packets;
 
 import euphoria.RoomConnection;
 
@@ -21,7 +21,7 @@ public abstract class DataPacket {
     return classToType(this.getClass());
   }
   
-  static Class typeToClass(String type) throws ClassNotFoundException{
+  public static Class typeToClass(String type) throws ClassNotFoundException{
     Matcher m = Pattern.compile("(?<=-)[a-z]").matcher(type);
 
     StringBuilder sb = new StringBuilder();
@@ -34,9 +34,17 @@ public abstract class DataPacket {
     sb.append(type.substring(last));
     type=sb.toString().replaceAll("(-)","");
     type = type.substring(0, 1).toUpperCase() + type.substring(1);
-    return Class.forName("euphoria.WebsocketJSON."+type);
+    String path = "euphoria.packets.";
+    if(type.substring(last-2).equals("Event")){
+      path+="events.";
+    } else if(type.substring(last-2).equals("Reply")) {
+      path+="replies.";
+    } else {
+      path+="commands.";
+    }
+    return Class.forName(path+type);
   }
-  static String classToType(Class cls) {
+  public static String classToType(Class cls) {
     String className = cls.getSimpleName().replaceAll("([a-z])([A-Z])","$1-$2");
     return className.toLowerCase();
   }

@@ -1,10 +1,17 @@
 package euphoria;
 
-import euphoria.ConnectionEvent;
-import euphoria.ConnectionEventListener;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import euphoria.events.ConnectionEvent;
+import euphoria.events.ConnectionEventListener;
+import euphoria.events.ConsoleEventListener;
+import euphoria.events.PacketEventListener;
+import euphoria.RoomConnection;
 
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -17,8 +24,17 @@ public abstract class Bot {
   private EventListenerList roomListeners = new EventListenerList();
   Console console;
   String botName;
+  boolean usesCookies = false;
+  FileIO cookieFile;
   
-  public Bot(String botName) {
+  public Bot(String botName, boolean startConsole) {
+    if(startConsole){
+      try {
+        initConsole();
+      } catch(java.awt.HeadlessException e) {
+        System.err.println("Could not find display.");
+      }
+    }
     this.botName = botName;
     roomListeners.add(ConnectionEventListener.class, new ConnectionEventListener(){
           @Override
@@ -70,7 +86,8 @@ public abstract class Bot {
   
   public void connectRoom(String roomName) {
     if(!isConnected(roomName)&&!isPending(roomName)) {
-      RoomConnection connection = new RoomConnection(roomName, roomListeners);
+      RoomConnection connection = new RoomConnection(roomName);
+      setupRoomConnection(connection);
       pendingConnections.add(connection);
       new Thread(connection).start();
     }
@@ -80,13 +97,41 @@ public abstract class Bot {
     if(isConnected(roomName)){
       return null;
     } else {
-      RoomConnection connection = new RoomConnection(roomName, roomListeners);
+      RoomConnection connection = new RoomConnection(roomName);
+      setupRoomConnection(connection);
       return connection;
     }
   }
   
   public void startRoomConnection(RoomConnection connection) { new Thread(connection).start();}
   
+  private void setupRoomConnection(RoomConnection connection) {
+      connection.setSharedListeners(roomListeners);
+      if(usesCookies) {
+        if(!cookieFile.getJson().get("cookie").getAsString().isEmpty())
+          connection.setCookies(cookieFile.getJson().get("cookie").getAsString());
+        connection.addConnectionEventListener(new ConnectionEventListener(){
+          @Override
+          public void onConnect(ConnectionEvent evt) {
+            synchronized(Bot.this.cookieFile){
+              JsonObject data = Bot.this.cookieFile.getJson();
+              data.remove("cookie");
+              data.addProperty("cookie", evt.getRoomConnection().getCookiesAsString());
+              try {
+                Bot.this.cookieFile.setJson(data);
+              } catch (IOException e) {
+                e.printStackTrace();
+              }
+            }
+          }
+          @Override
+          public void onConnectionError(ConnectionEvent evt) {}
+          @Override
+          public void onDisconnect(ConnectionEvent evt) {}
+        });
+      }
+    
+  }
   
   public void closeAll() {
     for(int i=0;i<connections.size();i++) {
@@ -128,6 +173,27 @@ public abstract class Bot {
     return pending;
   }
   
+  public void useCookies(FileIO cookieFile) {
+    this.cookieFile = cookieFile;
+    
+    JsonObject data = cookieFile.getJson();
+    if(cookieFile.getJson().has("cookie")){
+      if(cookieFile.getJson().get("cookie").isJsonPrimitive()) {
+        usesCookies = true;
+      } else {
+        throw new JsonParseException("Invalid 'cookie' member found.");
+      }
+    } else {
+      data.addProperty("cookie", "");
+      try {
+        cookieFile.setJson(data);
+        usesCookies = true;
+      } catch (IOException e) {
+        throw new JsonParseException("Could not create 'cookie' field.");
+      }
+    }
+  }
+  
   public void initConsole() {
     console = new euphoria.Console(botName);
     console.addWindowListener(new WindowListener(){
@@ -150,5 +216,17 @@ public abstract class Bot {
         @Override
         public void windowOpened(WindowEvent arg0) {}
     });
+  }
+  
+  public void addConsoleListener(ConsoleEventListener evtLst) {
+    if(console!=null){
+      console.addListener(evtLst);
+    }
+  }
+  
+  public void removeConsoleListener(ConsoleEventListener evtLst) {
+    if(console!=null){
+      console.removeListener(evtLst);
+    }
   }
 }

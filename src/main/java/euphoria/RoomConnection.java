@@ -5,15 +5,20 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
-import euphoria.PausedEventListener;
-import euphoria.WebsocketJSON.*;
+import euphoria.packets.*;
+import euphoria.packets.commands.*;
+import euphoria.events.*;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.net.HttpCookie;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import java.util.EventListener;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -34,19 +39,16 @@ public class RoomConnection implements Runnable{
   private Thread initThread;
   private Session session;
   private WebSocketClient client;
-  private String sessionID;
-  protected EventListenerList listeners = new EventListenerList();
-  protected EventListenerList sharedListeners;
+  private EventListenerList listeners = new EventListenerList();
+  private EventListenerList sharedListeners;
   private PausedEventListener pauseListener = new PausedEventListener(this);
+  Map<String, ReplyEventListener> replyListeners = new HashMap<String, ReplyEventListener>();
+  private String nextId = "0";
   private boolean isPaused = false;
   private String room;
-  
-                             
+  private List<HttpCookie> cookies = new ArrayList<HttpCookie>();
+           
   public RoomConnection(String room) {
-    this.room=room;
-  }
-  public RoomConnection(String room, EventListenerList shared) {
-    sharedListeners = shared;
     this.room=room;
   }
   
@@ -64,6 +66,7 @@ public class RoomConnection implements Runnable{
         e.printStackTrace();
       }
       ClientUpgradeRequest request = new ClientUpgradeRequest();
+      request.setCookies(cookies);
       client.connect(this, echoUri, request);
       System.out.printf("Connecting to : %s%n", echoUri);
       Thread.sleep(20000);
@@ -128,6 +131,7 @@ public class RoomConnection implements Runnable{
     System.out.println("Connected to "+room+"!");
     this.session = session;
     session.getPolicy().setMaxTextMessageSize(128*1024);
+    cookies = HttpCookie.parse(session.getUpgradeResponse().getHeader("Set-Cookie"));
     initThread.interrupt();
     Object[] lns = listeners.getListenerList();
     ConnectionEvent evt = new ConnectionEvent(this,room);
@@ -154,10 +158,10 @@ public class RoomConnection implements Runnable{
           pauseListener.onSendEvent(new MessageEvent(this,packet));
         }
       } else if(packet.getData().handle(this)){
+        PacketEvent evt = new PacketEvent(this,packet);
         
         
         Object[] lns = sharedListeners.getListenerList();
-        PacketEvent evt = new PacketEvent(this,packet);
         for (int i = 0; i < lns.length; i = i+2) {
           if (lns[i] == PacketEventListener.class&&!isPaused) {
             if(packet.getType().equals("send-event")) {
@@ -183,7 +187,6 @@ public class RoomConnection implements Runnable{
         
         
         lns = listeners.getListenerList();
-        evt = new PacketEvent(this,packet);
         for (int i = 0; i < lns.length; i = i+2) {
           if (lns[i] == PacketEventListener.class&&!isPaused) {
             if(packet.getType().equals("send-event")) {
@@ -206,13 +209,37 @@ public class RoomConnection implements Runnable{
             }
           }
         }
-        
-        
+      }
+      
+      if(packet.getType().matches("\\S*-reply$")) {
+        if(packet.getId()!=null) {
+          if(replyListeners.containsKey(packet.getId())){
+            ReplyEventListener evtLst = replyListeners.get(packet.getId());
+            PacketEvent evt = new PacketEvent(this,packet);
+            evtLst.onReplyEvent(evt);
+            if(packet.getError()==null) {
+              evtLst.onReplySuccess(evt);
+            } else {
+              evtLst.onReplyFail(evt);
+            }
+            replyListeners.remove(packet.getId());
+          }
+        }
       }
     } catch (JsonParseException e) {
       //System.out.println("Could not recognise type.");
     }
     
+  }
+  
+  public void setSharedListeners(EventListenerList listeners) {
+    sharedListeners=listeners;
+  }
+  public void setCookies(List<HttpCookie> cookies) {
+    this.cookies=cookies;
+  }
+  public void setCookies(String cookies) {
+    this.cookies=HttpCookie.parse(cookies);
   }
   
   public void addPacketEventListener(PacketEventListener listener) {
@@ -263,9 +290,7 @@ public class RoomConnection implements Runnable{
   }
   
   public void sendServerMessage(StandardPacket pckt) {
-    GsonBuilder gsonBilder = new GsonBuilder();
-    gsonBilder.registerTypeAdapter(StandardPacket.class, new DataAdapter());
-    Gson gson = gsonBilder.create();
+    Gson gson = new Gson();
     try {
       Future<Void> fut;
       fut = session.getRemote().sendStringByFuture(gson.toJson(pckt));
@@ -273,6 +298,13 @@ public class RoomConnection implements Runnable{
     } catch (Throwable e) {
       e.printStackTrace();
     }
+  }
+  
+  public void sendTrackedMessage(StandardPacket pckt, ReplyEventListener l) {
+    pckt.setId(nextId);
+    replyListeners.put(nextId, l);
+    sendServerMessage(pckt);
+    nextId=Long.toString(Long.valueOf(nextId, 36)+1,36);
   }
   
   private StandardPacket createPacketFromJson(JsonObject json) {
@@ -283,9 +315,7 @@ public class RoomConnection implements Runnable{
     return packet;
   }
   private String createJsonFromPacket(StandardPacket pckt) {
-    GsonBuilder gsonBilder = new GsonBuilder();
-    gsonBilder.registerTypeAdapter(StandardPacket.class, new DataAdapter());
-    Gson gson = gsonBilder.create();
+    Gson gson = new Gson();
     String json = gson.toJson(pckt);
     return json;
   }
@@ -293,5 +323,7 @@ public class RoomConnection implements Runnable{
   public void sendMessage(String message){ sendServerMessage(new Send(message).createPacket());}
   public void sendMessage(String message,String replyId){ sendServerMessage(new Send(message,replyId).createPacket());}
   public void changeNick(String nick){ sendServerMessage(new Nick(nick).createPacket());}
-  public String getRoom() {return room;}
+  public String getRoom() { return room; }
+  public List<HttpCookie> getCookies() { return cookies; }
+  public String getCookiesAsString() { return cookies.toString(); }
 }

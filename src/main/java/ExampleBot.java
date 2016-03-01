@@ -5,31 +5,43 @@ import java.util.regex.Pattern;
 
 import com.google.gson.JsonObject;
 import euphoria.*;
-import euphoria.ConnectionEvent;
 import euphoria.RoomNotConnectedException;
+import euphoria.events.*;
+import euphoria.events.PacketEvent;
 
 public class ExampleBot extends Bot{
   FileIO dataFile;
   
   public ExampleBot() {
-    super("TauBot");
-    try {
-      initConsole();
-    } catch(java.awt.HeadlessException e) {
-      System.err.println("Could not find display.");
-    }
+    super("TauBot",true);
     dataFile = new FileIO("exampleBot_data");
+    useCookies(dataFile);
+    addConsoleListener(new ConsoleEventListener() {
+      @Override
+      public void onCommand(String command) {
+        Pattern r = Pattern.compile("^!boop &(\\S+)");
+        Matcher m = r.matcher(command);
+        if(m.find()){
+          try {
+              getRoomConnection(m.group(1)).sendMessage("Boop");
+              System.out.println("Booped &"+m.group(1)+"!");
+          } catch (RoomNotConnectedException e) {
+              System.out.println("Not connected to &"+m.group(1)+"!");
+          }
+        }
+      }
+    });
+    addConsoleListener(new ConnectConsoleEventListener(this,dataFile));
     connectRoom("bots");
     final MessageEventListener announceListener = new MessageEventListener(){
       @Override
       public void onSendEvent(MessageEvent evt) {
-        System.out.println("Announce!");
         if(evt.getSender().equals("TauNeutrin0")&&Math.random()>0.9){
+          System.out.println("Announce!");
           evt.reply("@TauNeutrin0 has spoken!");
         }
       }
     };
-    
     addConnectionEventListener(new ConnectionEventListener() {
         @Override
         public void onConnect(ConnectionEvent evt) {
@@ -71,7 +83,14 @@ public class ExampleBot extends Bot{
           if (m.find()) {
             JsonObject obj = dataFile.getJson();
             if(obj.has(m.group(1))) {
-              evt.reply(obj.get(m.group(1)).getAsString());
+              evt.replyTracked(obj.get(m.group(1)).getAsString(),new ReplyEventListener() {
+                @Override
+                public void onReplyEvent(PacketEvent arg0) {System.out.println("Got reply.");}
+                @Override
+                public void onReplyFail(PacketEvent arg0) {System.out.println("Reply fail.");}
+                @Override
+                public void onReplySuccess(PacketEvent arg0) {System.out.println("Reply success.");}
+              });
             } else {
               evt.reply("Nothing stored in "+m.group(1)+".");
             }

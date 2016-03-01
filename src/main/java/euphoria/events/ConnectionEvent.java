@@ -1,4 +1,6 @@
-package euphoria;
+package euphoria.events;
+
+import euphoria.RoomConnection;
 
 import java.util.EventObject;
 

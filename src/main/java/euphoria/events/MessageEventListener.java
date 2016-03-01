@@ -1,6 +1,4 @@
-package euphoria;
-
-import euphoria.PacketEvent;
+package euphoria.events;
 
 public abstract class MessageEventListener implements PacketEventListener{
 

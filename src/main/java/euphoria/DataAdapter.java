@@ -1,4 +1,4 @@
-package euphoria.WebsocketJSON;
+package euphoria;
 
 import java.lang.reflect.Type;
 
@@ -8,19 +8,11 @@ import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
-import com.google.gson.JsonPrimitive;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
-import euphoria.WebsocketJSON.DataPacket;
+import euphoria.packets.DataPacket;
+import euphoria.packets.StandardPacket;
 
-public class DataAdapter implements JsonSerializer<StandardPacket>, JsonDeserializer<StandardPacket>{
-  @Override
-    public JsonElement serialize(StandardPacket src, Type typeOfSrc, JsonSerializationContext context) throws JsonParseException {
-        JsonObject result = new JsonObject();
-        result.add("type", new JsonPrimitive(DataPacket.classToType(src.getData().getClass())));
-        result.add("data", context.serialize(src.getData(), src.getData().getClass()));
-        return result;
-    }
+
+public class DataAdapter implements JsonDeserializer<StandardPacket>{
   @Override
     public StandardPacket deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
       throws JsonParseException {

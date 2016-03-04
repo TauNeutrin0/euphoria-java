@@ -83,7 +83,7 @@ public class ConnectConsoleEventListener implements ConsoleEventListener{
           final Matcher matcher = m;
           RoomConnection c = bot.createRoomConnection(m.group(1));
           System.out.println("/me is attempting to join...");
-          c.addConnectionEventListener(new ConnectionEventListener(){
+          c.listeners.add(ConnectionEventListener.class,new ConnectionEventListener(){
               @Override
               public void onConnect(ConnectionEvent arg0) {
                 System.out.println("/me has been added to &"+matcher.group(1));

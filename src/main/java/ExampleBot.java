@@ -42,11 +42,11 @@ public class ExampleBot extends Bot{
         }
       }
     };
-    addConnectionEventListener(new ConnectionEventListener() {
+    listeners.add(ConnectionEventListener.class,new ConnectionEventListener() {
         @Override
         public void onConnect(ConnectionEvent evt) {
           if(evt.getRoomConnection().getRoom().equals("bots")){
-            evt.getRoomConnection().addPacketEventListener(announceListener);
+            evt.getRoomConnection().listeners.add(PacketEventListener.class, announceListener);
           }
         }
         @Override
@@ -55,9 +55,9 @@ public class ExampleBot extends Bot{
         public void onDisconnect(ConnectionEvent evt) {}
     });
     
-    addPacketEventListener(new StandardEventListener("TauBot","I'm a test bot made by @TauNeutrin0. Hi!"));
-    addPacketEventListener(new ConnectMessageEventListener("TauBot",this,dataFile));
-    addPacketEventListener(new MessageEventListener(){
+    listeners.add(PacketEventListener.class,new StandardEventListener("TauBot","I'm a test bot made by @TauNeutrin0. Hi!"));
+    listeners.add(PacketEventListener.class,new ConnectMessageEventListener("TauBot",this,dataFile));
+    listeners.add(PacketEventListener.class,new MessageEventListener(){
       @Override
       public void onSendEvent(MessageEvent evt) {
         

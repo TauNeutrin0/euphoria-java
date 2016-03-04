@@ -98,7 +98,7 @@ public class ConnectMessageEventListener implements PacketEventListener {
           final Matcher matcher = m;
           RoomConnection c = bot.createRoomConnection(m.group(1));
           event.reply("/me is attempting to join...");
-          c.addConnectionEventListener(new ConnectionEventListener(){
+          c.listeners.add(ConnectionEventListener.class,new ConnectionEventListener(){
               @Override
               public void onConnect(ConnectionEvent arg0) {
                 event.reply("/me has been added to &"+matcher.group(1));

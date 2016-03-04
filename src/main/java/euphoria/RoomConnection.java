@@ -39,7 +39,7 @@ public class RoomConnection implements Runnable{
   private Thread initThread;
   private Session session;
   private WebSocketClient client;
-  private EventListenerList listeners = new EventListenerList();
+  public EventListenerList listeners = new EventListenerList();
   private EventListenerList sharedListeners;
   private PausedEventListener pauseListener = new PausedEventListener(this);
   Map<String, ReplyEventListener> replyListeners = new HashMap<String, ReplyEventListener>();
@@ -240,19 +240,6 @@ public class RoomConnection implements Runnable{
   }
   public void setCookies(String cookies) {
     this.cookies=HttpCookie.parse(cookies);
-  }
-  
-  public void addPacketEventListener(PacketEventListener listener) {
-    listeners.add(PacketEventListener.class, listener);
-  }
-  public void removePacketEventListener(PacketEventListener listener) {
-    listeners.remove(PacketEventListener.class, listener);
-  }
-  public void addConnectionEventListener(ConnectionEventListener listener) {
-    listeners.add(ConnectionEventListener.class, listener);
-  }
-  public void removeConnectionEventListener(ConnectionEventListener listener) {
-    listeners.remove(ConnectionEventListener.class, listener);
   }
   
   public void setCustomPauseListener(PausedEventListener listener) {

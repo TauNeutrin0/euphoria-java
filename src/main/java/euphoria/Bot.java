@@ -5,7 +5,6 @@ import com.google.gson.JsonParseException;
 import euphoria.events.ConnectionEvent;
 import euphoria.events.ConnectionEventListener;
 import euphoria.events.ConsoleEventListener;
-import euphoria.events.PacketEventListener;
 import euphoria.RoomConnection;
 
 import java.awt.event.WindowEvent;
@@ -18,15 +17,16 @@ import javax.swing.event.EventListenerList;
 
 public abstract class Bot {
   
-  List<RoomConnection> connections = new LinkedList<RoomConnection>();
-  List<RoomConnection> pendingConnections = new LinkedList<RoomConnection>();
-  EventListenerList roomListeners = new EventListenerList();
-  Console console;
-  String botName;
-  boolean usesCookies = false;
-  FileIO cookieFile;
+  private List<RoomConnection> connections = new LinkedList<RoomConnection>();
+  private List<RoomConnection> pendingConnections = new LinkedList<RoomConnection>();
+  public EventListenerList listeners = new EventListenerList();
+  private Console console;
+  private String botName;
+  private boolean usesCookies = false;
+  private FileIO cookieFile;
   
   public Bot(String botName, boolean startConsole) {
+    this.botName = botName;
     if(startConsole){
       try {
         initConsole();
@@ -34,8 +34,7 @@ public abstract class Bot {
         System.err.println("Could not find display.");
       }
     }
-    this.botName = botName;
-    roomListeners.add(ConnectionEventListener.class, new ConnectionEventListener(){
+    listeners.add(ConnectionEventListener.class, new ConnectionEventListener(){
           @Override
           public void onConnect(ConnectionEvent evt) {
             Bot.this.connections.add(evt.getRoomConnection());
@@ -54,22 +53,6 @@ public abstract class Bot {
             }
           }
       });
-  }
-  
-  public void addPacketEventListener(PacketEventListener eL) {
-    roomListeners.add(PacketEventListener.class, eL);
-  }
-  
-  public void removePacketEventListener(PacketEventListener eL) {
-    roomListeners.remove(PacketEventListener.class, eL);
-  }
-  
-  public void addConnectionEventListener(ConnectionEventListener eL) {
-    roomListeners.add(ConnectionEventListener.class, eL);
-  }
-  
-  public void removeConnectionEventListener(ConnectionEventListener eL) {
-    roomListeners.remove(ConnectionEventListener.class, eL);
   }
   
   public RoomConnection getRoomConnection(String room) throws RoomNotConnectedException{
@@ -105,11 +88,11 @@ public abstract class Bot {
   public void startRoomConnection(RoomConnection connection) { new Thread(connection).start();}
   
   private void setupRoomConnection(RoomConnection connection) {
-      connection.setSharedListeners(roomListeners);
+      connection.setSharedListeners(listeners);
       if(usesCookies) {
         if(!cookieFile.getJson().get("cookie").getAsString().isEmpty())
           connection.setCookies(cookieFile.getJson().get("cookie").getAsString());
-        connection.addConnectionEventListener(new ConnectionEventListener(){
+        connection.listeners.add(ConnectionEventListener.class,new ConnectionEventListener(){
           @Override
           public void onConnect(ConnectionEvent evt) {
             synchronized(Bot.this.cookieFile){

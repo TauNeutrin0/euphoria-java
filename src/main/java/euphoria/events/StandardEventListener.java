@@ -1,5 +1,7 @@
 package euphoria.events;
 
+import euphoria.events.PacketEvent;
+
 public class StandardEventListener implements PacketEventListener{
   String nick;
   String helpText;
@@ -7,6 +9,7 @@ public class StandardEventListener implements PacketEventListener{
     this.nick=nick;
     this.helpText=helpText;
   }
+  @Override
   public void onSendEvent(MessageEvent evt) {
     if(evt.getMessage().matches("^!ping(?: @"+nick+")?$")){
       evt.reply("Pong!");
@@ -23,19 +26,17 @@ public class StandardEventListener implements PacketEventListener{
       evt.getRoomConnection().pause(nick);
     }
   }
-  public void onSnapshotEvent(PacketEvent evt) {
-    
-  }
+  @Override
+  public void onSnapshotEvent(PacketEvent evt) {}
   public void onHelloEvent(PacketEvent evt) {
     evt.getRoomConnection().changeNick(nick);
   }
-  public void onNickEvent(PacketEvent evt) {
-    
-  }
-  public void onJoinEvent(PacketEvent evt) {
-    
-  }
-  public void onPartEvent(PacketEvent evt) {
-    
-  }
+  @Override
+  public void onNickEvent(PacketEvent evt) {}
+  @Override
+  public void onJoinEvent(PacketEvent evt) {}
+  @Override
+  public void onPartEvent(PacketEvent evt) {}
+  @Override
+  public void onBounceEvent(PacketEvent arg0) {}
 }

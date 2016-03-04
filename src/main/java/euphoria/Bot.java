@@ -1,6 +1,5 @@
 package euphoria;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import euphoria.events.ConnectionEvent;
@@ -21,7 +20,7 @@ public abstract class Bot {
   
   List<RoomConnection> connections = new LinkedList<RoomConnection>();
   List<RoomConnection> pendingConnections = new LinkedList<RoomConnection>();
-  private EventListenerList roomListeners = new EventListenerList();
+  EventListenerList roomListeners = new EventListenerList();
   Console console;
   String botName;
   boolean usesCookies = false;

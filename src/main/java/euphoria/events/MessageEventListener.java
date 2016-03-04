@@ -19,5 +19,8 @@ public abstract class MessageEventListener implements PacketEventListener{
 
     @Override
     public void onSnapshotEvent(PacketEvent arg0) {}
+    
+    @Override
+    public void onBounceEvent(PacketEvent evt){}
   
 }

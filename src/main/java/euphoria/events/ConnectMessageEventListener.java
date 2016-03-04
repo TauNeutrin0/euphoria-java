@@ -8,6 +8,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import euphoria.*;
+import euphoria.events.PacketEvent;
 
 public class ConnectMessageEventListener implements PacketEventListener {
   Bot bot;
@@ -175,4 +176,6 @@ public class ConnectMessageEventListener implements PacketEventListener {
 
   @Override
   public void onSnapshotEvent(PacketEvent arg0) {}
+  @Override
+  public void onBounceEvent(PacketEvent arg0) {}
 }

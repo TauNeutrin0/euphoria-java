@@ -10,6 +10,7 @@ import euphoria.RoomConnection;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -17,8 +18,8 @@ import javax.swing.event.EventListenerList;
 
 public abstract class Bot {
   
-  private List<RoomConnection> connections = new LinkedList<RoomConnection>();
-  private List<RoomConnection> pendingConnections = new LinkedList<RoomConnection>();
+  private List<RoomConnection> connections = new ArrayList<RoomConnection>();
+  private List<RoomConnection> pendingConnections = new ArrayList<RoomConnection>();
   public EventListenerList listeners = new EventListenerList();
   private Console console;
   private String botName;

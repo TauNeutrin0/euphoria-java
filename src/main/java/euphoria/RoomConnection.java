@@ -313,4 +313,5 @@ public class RoomConnection implements Runnable{
   public String getRoom() { return room; }
   public List<HttpCookie> getCookies() { return cookies; }
   public String getCookiesAsString() { return cookies.toString(); }
+  public boolean isPaused() { return isPaused; }
 }

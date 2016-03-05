@@ -20,4 +20,7 @@ public class MessageEvent extends PacketEvent{
   public String getMessage() {
     return ((SendEvent)packet.getData()).getContent();
   }
+  public String getId() {
+    return ((SendEvent)packet.getData()).getId();
+  }
 }

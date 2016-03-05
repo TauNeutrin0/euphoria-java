@@ -1,6 +1,8 @@
 package euphoria.packets.replies;
 
-public class NickReply {
+import euphoria.packets.DataPacket;
+
+public class NickReply extends DataPacket {
   private String session_id;
   private String id;
   private String from;

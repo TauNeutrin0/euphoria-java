@@ -1,6 +1,8 @@
 package euphoria.packets.replies;
 
-public class AuthReply {
+import euphoria.packets.DataPacket;
+
+public class AuthReply extends DataPacket {
   private boolean success;
   private String  reason;
   

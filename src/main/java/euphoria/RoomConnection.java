@@ -7,6 +7,7 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import euphoria.packets.*;
 import euphoria.packets.commands.*;
+import euphoria.packets.events.*;
 import euphoria.events.*;
 
 import java.io.IOException;
@@ -157,55 +158,57 @@ public class RoomConnection implements Runnable{
         if(packet.getType().equals("send-event")) {
           pauseListener.onSendEvent(new MessageEvent(this,packet));
         }
-      } else if(packet.getData().handle(this)){
-        PacketEvent evt = new PacketEvent(this,packet);
-        
-        
-        Object[] lns = sharedListeners.getListenerList();
-        for (int i = 0; i < lns.length; i = i+2) {
-          if (lns[i] == PacketEventListener.class&&!isPaused) {
-            if(packet.getType().equals("send-event")) {
-              ((PacketEventListener) lns[i+1]).onSendEvent(new MessageEvent(this,packet));
-            } else {
-              java.lang.reflect.Method method;
-              try {
-                method = ((PacketEventListener) lns[i+1]).getClass().getMethod("on"+packet.getData().getClass().getSimpleName(),PacketEvent.class);
-                if(!method.isAccessible()) {
-                  method.setAccessible(true);
-                }
-                method.invoke(((PacketEventListener) lns[i+1]),evt);
-              } catch (IllegalArgumentException e) {e.printStackTrace();
-              } catch (IllegalAccessException e) {e.printStackTrace();
-              } catch (InvocationTargetException e) {e.printStackTrace();
-              } catch (SecurityException e) {e.printStackTrace();
-              } catch (NoSuchMethodException e) {
-                //System.out.println("No handler provided for "+packet.getType()+".");
+      }
+      if(packet.getType().equals("ping-event")) {
+        ((PingEvent)packet.getData()).handle(this);
+      }
+      PacketEvent evt = new PacketEvent(this,packet);
+
+
+      Object[] lns = sharedListeners.getListenerList();
+      for (int i = 0; i < lns.length; i = i+2) {
+        if (lns[i] == PacketEventListener.class&&!isPaused) {
+          if(packet.getType().equals("send-event")) {
+            ((PacketEventListener) lns[i+1]).onSendEvent(new MessageEvent(this,packet));
+          } else {
+            java.lang.reflect.Method method;
+            try {
+              method = ((PacketEventListener) lns[i+1]).getClass().getMethod("on"+packet.getData().getClass().getSimpleName(),PacketEvent.class);
+              if(!method.isAccessible()) {
+                method.setAccessible(true);
               }
+              method.invoke(((PacketEventListener) lns[i+1]),evt);
+            } catch (IllegalArgumentException e) {e.printStackTrace();
+            } catch (IllegalAccessException e) {e.printStackTrace();
+            } catch (InvocationTargetException e) {e.printStackTrace();
+            } catch (SecurityException e) {e.printStackTrace();
+            } catch (NoSuchMethodException e) {
+              //System.out.println("No handler provided for "+packet.getType()+".");
             }
           }
         }
-        
-        
-        lns = listeners.getListenerList();
-        for (int i = 0; i < lns.length; i = i+2) {
-          if (lns[i] == PacketEventListener.class&&!isPaused) {
-            if(packet.getType().equals("send-event")) {
-              ((PacketEventListener) lns[i+1]).onSendEvent(new MessageEvent(this,packet));
-            } else {
-              java.lang.reflect.Method method;
-              try {
-                method = ((PacketEventListener) lns[i+1]).getClass().getMethod("on"+packet.getData().getClass().getSimpleName(),PacketEvent.class);
-                if(!method.isAccessible()) {
-                  method.setAccessible(true);
-                }
-                method.invoke(((PacketEventListener) lns[i+1]),evt);
-              } catch (IllegalArgumentException e) {e.printStackTrace();
-              } catch (IllegalAccessException e) {e.printStackTrace();
-              } catch (InvocationTargetException e) {e.printStackTrace();
-              } catch (SecurityException e) {e.printStackTrace();
-              } catch (NoSuchMethodException e) {
-                //System.out.println("No handler provided for "+packet.getType()+".");
+      }
+
+
+      lns = listeners.getListenerList();
+      for (int i = 0; i < lns.length; i = i+2) {
+        if (lns[i] == PacketEventListener.class&&!isPaused) {
+          if(packet.getType().equals("send-event")) {
+            ((PacketEventListener) lns[i+1]).onSendEvent(new MessageEvent(this,packet));
+          } else {
+            java.lang.reflect.Method method;
+            try {
+              method = ((PacketEventListener) lns[i+1]).getClass().getMethod("on"+packet.getData().getClass().getSimpleName(),PacketEvent.class);
+              if(!method.isAccessible()) {
+                method.setAccessible(true);
               }
+              method.invoke(((PacketEventListener) lns[i+1]),evt);
+            } catch (IllegalArgumentException e) {e.printStackTrace();
+            } catch (IllegalAccessException e) {e.printStackTrace();
+            } catch (InvocationTargetException e) {e.printStackTrace();
+            } catch (SecurityException e) {e.printStackTrace();
+            } catch (NoSuchMethodException e) {
+              //System.out.println("No handler provided for "+packet.getType()+".");
             }
           }
         }
@@ -215,7 +218,6 @@ public class RoomConnection implements Runnable{
         if(packet.getId()!=null) {
           if(replyListeners.containsKey(packet.getId())){
             ReplyEventListener evtLst = replyListeners.get(packet.getId());
-            PacketEvent evt = new PacketEvent(this,packet);
             evtLst.onReplyEvent(evt);
             if(packet.getError()==null) {
               evtLst.onReplySuccess(evt);

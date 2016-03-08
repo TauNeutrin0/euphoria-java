@@ -1,20 +1,13 @@
 package euphoria.packets;
 
-import euphoria.RoomConnection;
-
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public abstract class DataPacket {
-  private static String type;
   
   public StandardPacket createPacket() {
     StandardPacket p = new StandardPacket(this);
     return p;
-  }
-  
-  public boolean handle(RoomConnection rmCom) {
-    return true;
   }
   
   public final String getType() {

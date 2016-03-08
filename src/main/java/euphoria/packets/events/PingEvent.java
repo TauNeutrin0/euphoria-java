@@ -9,6 +9,10 @@ public class PingEvent extends DataPacket {
   private int time;
   private int next;
   
+  public PingEvent() {
+
+  }
+  
   public boolean handle(RoomConnection rmCon) {
     rmCon.sendServerMessage(new PingReply(time).createPacket());
     return false;

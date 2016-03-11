@@ -7,6 +7,7 @@ import com.google.gson.JsonObject;
 import euphoria.*;
 import euphoria.RoomNotConnectedException;
 import euphoria.events.*;
+import euphoria.events.ConnectionEvent;
 import euphoria.events.PacketEvent;
 
 public class ExampleBot extends Bot{
@@ -16,6 +17,15 @@ public class ExampleBot extends Bot{
     super("TauBot",true);
     dataFile = new FileIO("exampleBot_data");
     useCookies(dataFile);
+    
+    listeners.add(PacketEventListener.class,new StandardEventListener("TauBot","I'm a test bot made by @TauNeutrin0. Hi!"));
+    
+    ConnectMessageEventListener cMEL = new ConnectMessageEventListener("TauBot",this,dataFile).connectAll();
+    addConsoleListener(cMEL);
+    listeners.add(PacketEventListener.class,cMEL);
+    
+    connectRoom("bots");
+    
     addConsoleListener(new ConsoleEventListener() {
       @Override
       public void onCommand(String command) {
@@ -31,8 +41,7 @@ public class ExampleBot extends Bot{
         }
       }
     });
-    addConsoleListener(new ConnectConsoleEventListener(this,dataFile));
-    connectRoom("bots");
+    
     final MessageEventListener announceListener = new MessageEventListener(){
       @Override
       public void onSendEvent(MessageEvent evt) {
@@ -55,8 +64,6 @@ public class ExampleBot extends Bot{
         public void onDisconnect(ConnectionEvent evt) {}
     });
     
-    listeners.add(PacketEventListener.class,new StandardEventListener("TauBot","I'm a test bot made by @TauNeutrin0. Hi!"));
-    listeners.add(PacketEventListener.class,new ConnectMessageEventListener("TauBot",this,dataFile));
     listeners.add(PacketEventListener.class,new MessageEventListener(){
       @Override
       public void onSendEvent(MessageEvent evt) {

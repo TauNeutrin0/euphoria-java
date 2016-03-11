@@ -1,6 +1,7 @@
 package euphoria.packets.commands;
 
 import euphoria.packets.DataPacket;
+import euphoria.packets.StandardPacket;
 
 public class Auth extends DataPacket{
   private String type;
@@ -9,5 +10,9 @@ public class Auth extends DataPacket{
   public Auth(String type, String passcode) {
     this.type=type;
     this.passcode=passcode;
+  }
+  
+  public static StandardPacket createPasswordAttempt(String password) {
+    return new Auth("passcode",password).createPacket();
   }
 }

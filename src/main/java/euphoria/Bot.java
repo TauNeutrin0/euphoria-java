@@ -16,7 +16,6 @@ import java.util.List;
 import javax.swing.event.EventListenerList;
 
 public abstract class Bot {
-  
   private List<RoomConnection> connections = new ArrayList<RoomConnection>();
   private List<RoomConnection> pendingConnections = new ArrayList<RoomConnection>();
   public EventListenerList listeners = new EventListenerList();
@@ -34,25 +33,6 @@ public abstract class Bot {
         System.err.println("Could not find display.");
       }
     }
-    listeners.add(ConnectionEventListener.class, new ConnectionEventListener(){
-          @Override
-          public void onConnect(ConnectionEvent evt) {
-            Bot.this.connections.add(evt.getRoomConnection());
-            if(Bot.this.pendingConnections.contains(evt.getRoomConnection())) {
-              Bot.this.pendingConnections.remove(evt.getRoomConnection());
-            }
-          }
-          @Override
-          public void onDisconnect(ConnectionEvent evt) {
-            Bot.this.connections.remove(evt.getRoomConnection());
-          }
-          @Override
-          public void onConnectionError(ConnectionEvent evt) {
-            if(Bot.this.pendingConnections.contains(evt.getRoomConnection())) {
-              Bot.this.pendingConnections.remove(evt.getRoomConnection());
-            }
-          }
-      });
   }
   
   public RoomConnection getRoomConnection(String room) throws RoomNotConnectedException{
@@ -75,6 +55,16 @@ public abstract class Bot {
     }
   }
   
+  public void connectRoom(String roomName, ConnectionEventListener eL) {
+    if(!isConnected(roomName)&&!isPending(roomName)) {
+      RoomConnection connection = new RoomConnection(roomName);
+      setupRoomConnection(connection);
+      connection.listeners.add(ConnectionEventListener.class, eL);
+      pendingConnections.add(connection);
+      new Thread(connection).start();
+    }
+  }
+  
   public RoomConnection createRoomConnection(String roomName){
     if(isConnected(roomName)){
       return null;
@@ -85,34 +75,59 @@ public abstract class Bot {
     }
   }
   
-  public void startRoomConnection(RoomConnection connection) { new Thread(connection).start();}
+  public void startRoomConnection(RoomConnection connection) {
+    pendingConnections.add(connection);
+    new Thread(connection).start();
+  }
   
   private void setupRoomConnection(RoomConnection connection) {
-      connection.setSharedListeners(listeners);
-      if(usesCookies) {
-        if(!cookieFile.getJson().get("cookie").getAsString().isEmpty())
-          connection.setCookies(cookieFile.getJson().get("cookie").getAsString());
-        connection.listeners.add(ConnectionEventListener.class,new ConnectionEventListener(){
-          @Override
-          public void onConnect(ConnectionEvent evt) {
-            synchronized(Bot.this.cookieFile){
-              JsonObject data = Bot.this.cookieFile.getJson();
-              data.remove("cookie");
-              data.addProperty("cookie", evt.getRoomConnection().getCookiesAsString());
-              try {
-                Bot.this.cookieFile.setJson(data);
-              } catch (IOException e) {
-                e.printStackTrace();
-              }
+    //Make room add and remove itself to/from connections automatically
+    connection.listeners.add(ConnectionEventListener.class, new ConnectionEventListener(){
+        @Override
+        public void onConnect(ConnectionEvent evt) {
+          Bot.this.connections.add(evt.getRoomConnection());
+          if(Bot.this.pendingConnections.contains(evt.getRoomConnection())) {
+            Bot.this.pendingConnections.remove(evt.getRoomConnection());
+          }
+        }
+        @Override
+        public void onDisconnect(ConnectionEvent evt) {
+          Bot.this.connections.remove(evt.getRoomConnection());
+        }
+        @Override
+        public void onConnectionError(ConnectionEvent evt) {
+          if(Bot.this.pendingConnections.contains(evt.getRoomConnection())) {
+            Bot.this.pendingConnections.remove(evt.getRoomConnection());
+          }
+        }
+    });
+    
+    connection.setSharedListeners(listeners); //Set connection's shared listeners
+    
+    //Set cookies
+    if(usesCookies) {
+      if(!cookieFile.getJson().get("cookie").getAsString().isEmpty())
+        connection.setCookies(cookieFile.getJson().get("cookie").getAsString());
+      connection.listeners.add(ConnectionEventListener.class,new ConnectionEventListener(){
+        @Override
+        public void onConnect(ConnectionEvent evt) {
+          synchronized(Bot.this.cookieFile){
+            JsonObject data = Bot.this.cookieFile.getJson();
+            data.remove("cookie");
+            data.addProperty("cookie", evt.getRoomConnection().getCookiesAsString());
+            try {
+              Bot.this.cookieFile.setJson(data);
+            } catch (IOException e) {
+              e.printStackTrace();
             }
           }
-          @Override
-          public void onConnectionError(ConnectionEvent evt) {}
-          @Override
-          public void onDisconnect(ConnectionEvent evt) {}
-        });
-      }
-    
+        }
+        @Override
+        public void onConnectionError(ConnectionEvent evt) {}
+        @Override
+        public void onDisconnect(ConnectionEvent evt) {}
+      });
+    }
   }
   
   public void closeAll() {

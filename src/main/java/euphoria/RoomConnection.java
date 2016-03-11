@@ -8,9 +8,12 @@ import com.google.gson.JsonParser;
 import euphoria.packets.*;
 import euphoria.packets.commands.*;
 import euphoria.packets.events.*;
+import euphoria.packets.replies.*;
 import euphoria.events.*;
+import euphoria.events.PacketEvent;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.HttpCookie;
 import java.net.URI;
@@ -48,6 +51,9 @@ public class RoomConnection implements Runnable{
   private boolean isPaused = false;
   private String room;
   private List<HttpCookie> cookies = new ArrayList<HttpCookie>();
+  private String password;
+  private boolean isBounced = false;
+  private ReplyEventListener passwordListener;
            
   public RoomConnection(String room) {
     this.room=room;
@@ -154,6 +160,30 @@ public class RoomConnection implements Runnable{
     JsonObject jsonObj = new JsonParser().parse(msg).getAsJsonObject();
     try{
       StandardPacket packet = createPacketFromJson(jsonObj);
+      if(packet.getData()==null) {
+        Object object = new Object();
+        Class<?> clazz;
+        try {
+          clazz = DataPacket.typeToClass(packet.getType());
+          Constructor<?> ctor = clazz.getConstructor();
+          object = ctor.newInstance();
+        } catch (ClassNotFoundException e) {
+          e.printStackTrace();
+        } catch (InstantiationException e) {
+          e.printStackTrace();
+        } catch (IllegalAccessException e) {
+          e.printStackTrace();
+        } catch (IllegalArgumentException e) {
+          e.printStackTrace();
+        } catch (InvocationTargetException e) {
+          e.printStackTrace();
+        } catch (NoSuchMethodException e) {
+          e.printStackTrace();
+        } catch (SecurityException e) {
+          e.printStackTrace();
+        }
+        packet.setData((DataPacket)object);
+      }
       if(isPaused){
         if(packet.getType().equals("send-event")) {
           pauseListener.onSendEvent(new MessageEvent(this,packet));
@@ -161,6 +191,13 @@ public class RoomConnection implements Runnable{
       }
       if(packet.getType().equals("ping-event")) {
         ((PingEvent)packet.getData()).handle(this);
+      } else if(packet.getType().equals("bounce-event")) {
+        if(password!=null) {
+          if(passwordListener==null) sendPacket(Auth.createPasswordAttempt(password));
+          else sendPacket(Auth.createPasswordAttempt(password), passwordListener);
+        } else {
+          isBounced = true;
+        }
       }
       PacketEvent evt = new PacketEvent(this,packet);
 
@@ -257,7 +294,55 @@ public class RoomConnection implements Runnable{
     isPaused=false;
   }
   
-  public void sendServerMessage(String message) {
+  public void tryPassword(String pw) {
+    if(isBounced){
+      sendPacket(Auth.createPasswordAttempt(pw), new ReplyEventListener() {
+
+        @Override
+        public void onReplyEvent(PacketEvent evt) {
+          if(((AuthReply)evt.getPacket().getData()).getSuccess()){
+            isBounced=false;
+          }
+        }
+        @Override
+        public void onReplyFail(PacketEvent arg0) {
+        }
+        @Override
+        public void onReplySuccess(PacketEvent arg0) {
+        }
+      });
+    } else {
+      password=pw;
+    }
+  }
+  
+  public void tryPassword(String pw, ReplyEventListener eL) {
+    if(isBounced){
+      final ReplyEventListener passwordListener = eL;
+      sendPacket(Auth.createPasswordAttempt(pw), new ReplyEventListener() {
+
+        @Override
+        public void onReplyEvent(PacketEvent evt) {
+          passwordListener.onReplyEvent(evt);
+          if(((AuthReply)evt.getPacket().getData()).getSuccess()){
+            isBounced=false;
+            passwordListener.onReplySuccess(evt);
+          } else passwordListener.onReplyFail(evt);
+        }
+        @Override
+        public void onReplyFail(PacketEvent arg0) {
+        }
+        @Override
+        public void onReplySuccess(PacketEvent arg0) {
+        }
+      });
+    } else {
+      password=pw;
+      passwordListener = eL;
+    }
+  }
+  
+  public void sendPacket(String message) {
     try {
       Future<Void> fut;
       fut = session.getRemote().sendStringByFuture(message);
@@ -267,7 +352,7 @@ public class RoomConnection implements Runnable{
     }
   }
   
-  public void sendServerMessage(JsonObject message) {
+  public void sendPacket(JsonObject message) {
     Gson gson = new Gson();
     try {
       Future<Void> fut;
@@ -278,7 +363,7 @@ public class RoomConnection implements Runnable{
     }
   }
   
-  public void sendServerMessage(StandardPacket pckt) {
+  public void sendPacket(StandardPacket pckt) {
     Gson gson = new Gson();
     try {
       Future<Void> fut;
@@ -289,10 +374,10 @@ public class RoomConnection implements Runnable{
     }
   }
   
-  public void sendTrackedMessage(StandardPacket pckt, ReplyEventListener l) {
+  public void sendPacket(StandardPacket pckt, ReplyEventListener l) {
     pckt.setId(nextId);
     replyListeners.put(nextId, l);
-    sendServerMessage(pckt);
+    sendPacket(pckt);
     nextId=Long.toString(Long.valueOf(nextId, 36)+1,36);
   }
   
@@ -309,11 +394,12 @@ public class RoomConnection implements Runnable{
     return json;
   }
   
-  public void sendMessage(String message){ sendServerMessage(new Send(message).createPacket());}
-  public void sendMessage(String message,String replyId){ sendServerMessage(new Send(message,replyId).createPacket());}
-  public void changeNick(String nick){ sendServerMessage(new Nick(nick).createPacket());}
+  public void sendMessage(String message){ sendPacket(new Send(message).createPacket());}
+  public void sendMessage(String message,String replyId){ sendPacket(new Send(message,replyId).createPacket());}
+  public void changeNick(String nick){ sendPacket(new Nick(nick).createPacket());}
   public String getRoom() { return room; }
   public List<HttpCookie> getCookies() { return cookies; }
   public String getCookiesAsString() { return cookies.toString(); }
   public boolean isPaused() { return isPaused; }
+  public boolean isBounced() { return isBounced; }
 }

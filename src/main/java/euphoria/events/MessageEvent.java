@@ -9,10 +9,10 @@ public class MessageEvent extends PacketEvent{
     super(roomCon, pckt);
   }
   public void reply(String message) {
-    room.sendServerMessage(((SendEvent)packet.getData()).createReply(message));
+    room.sendPacket(((SendEvent)packet.getData()).createReply(message));
   }
   public void replyTracked(String message,ReplyEventListener evtLst) {
-    room.sendTrackedMessage(((SendEvent)packet.getData()).createReply(message),evtLst);
+    room.sendPacket(((SendEvent)packet.getData()).createReply(message),evtLst);
   }
   public String getSender() {
     return ((SendEvent)packet.getData()).getSender().getName();

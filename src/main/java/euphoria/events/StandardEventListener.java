@@ -27,10 +27,10 @@ public class StandardEventListener implements PacketEventListener{
     }
   }
   @Override
-  public void onSnapshotEvent(PacketEvent evt) {}
-  public void onHelloEvent(PacketEvent evt) {
+  public void onSnapshotEvent(PacketEvent evt) {
     evt.getRoomConnection().changeNick(nick);
   }
+  public void onHelloEvent(PacketEvent evt) {}
   @Override
   public void onNickEvent(PacketEvent evt) {}
   @Override

@@ -14,7 +14,7 @@ public class BounceEvent extends DataPacket{
   private String ip;
   
   public void attemptPasscode(RoomConnection room, String passcode, ReplyEventListener evtLst) {
-    room.sendTrackedMessage(new Auth("passcode",passcode).createPacket(),evtLst);
+    room.sendPacket(new Auth("passcode",passcode).createPacket(),evtLst);
   }
   
   public String            getReason()      { return reason;       }

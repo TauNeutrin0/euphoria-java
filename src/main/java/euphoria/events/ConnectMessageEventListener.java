@@ -28,10 +28,8 @@ public class ConnectMessageEventListener implements PacketEventListener, Console
     this.dataFile = dataFile;
     synchronized(dataFile){
       JsonObject data = dataFile.getJson();
-      if(dataFile.getJson().has("rooms")){
-        if(dataFile.getJson().get("rooms").isJsonArray()) {
-          hasDataFile = true;
-        } else {
+      if(data.has("rooms")){
+        if(!data.get("rooms").isJsonArray()) {
           throw new JsonParseException("Invalid 'room' member found.");
         }
       } else {
@@ -41,11 +39,23 @@ public class ConnectMessageEventListener implements PacketEventListener, Console
         try {
           dataFile.setJson(data);
         } catch (IOException e) {
-          e.printStackTrace(); //TODO Handle this?
+          throw new JsonParseException("Could not create 'room' member.");
         }
-        hasDataFile = true;
+      }
+      if(dataFile.getJson().has("room-passwords")){
+        if(!dataFile.getJson().get("room-passwords").isJsonObject()) {
+          throw new JsonParseException("Invalid 'room-passwords' member found.");
+        }
+      } else {
+        data.add("room-passwords", new JsonObject());
+        try {
+          dataFile.setJson(data);
+        } catch (IOException e) {
+          throw new JsonParseException("Could not create 'room-passwords' member.");
+        }
       }
     }
+    hasDataFile = true;
   }
   public ConnectMessageEventListener connectAll() {
     synchronized(dataFile){
@@ -54,10 +64,10 @@ public class ConnectMessageEventListener implements PacketEventListener, Console
         final String room = data.getAsJsonArray("rooms").get(i).getAsString();
         if(!(bot.isConnected(room)||bot.isPending(room))){
           RoomConnection c = bot.createRoomConnection(room);
+          
           c.listeners.add(PacketEventListener.class, new PacketEventListener() {
             @Override
             public void onBounceEvent(PacketEvent evt) {
-
               if(data.getAsJsonObject("room-passwords").has(room)){
                 try {
                   RoomConnection rmCon = bot.getRoomConnection(room);
@@ -86,37 +96,20 @@ public class ConnectMessageEventListener implements PacketEventListener, Console
                                    +"Use \"!trypass @"+nick+" &"+room+" [password]\" to attempt to connect with a password.");
               }
             }
-            @Override
             public void onHelloEvent(PacketEvent arg0) {}
-            @Override
             public void onJoinEvent(PacketEvent arg0) {}
-            @Override
             public void onNickEvent(PacketEvent arg0) {}
-            @Override
             public void onPartEvent(PacketEvent arg0) {}
-            @Override
             public void onSendEvent(MessageEvent arg0) {}
-            @Override
             public void onSnapshotEvent(PacketEvent arg0) {}
           });
+          
           bot.startRoomConnection(c);
         }
       }
     }
     return this;
   }
-
-  @Override
-  public void onHelloEvent(PacketEvent arg0) {}
-
-  @Override
-  public void onJoinEvent(PacketEvent arg0) {}
-
-  @Override
-  public void onNickEvent(PacketEvent arg0) {}
-
-  @Override
-  public void onPartEvent(PacketEvent arg0) {}
 
   @Override
   public void onSendEvent(MessageEvent evt) {
@@ -151,17 +144,16 @@ public class ConnectMessageEventListener implements PacketEventListener, Console
           final MessageEvent event = evt;
           RoomConnection c = bot.createRoomConnection(m.group(1));
           event.reply("/me is attempting to join...");
+          
           c.listeners.add(ConnectionEventListener.class,new ConnectionEventListener(){
-              @Override
-              public void onConnect(ConnectionEvent arg0) {
-              }
               @Override
               public void onConnectionError(ConnectionEvent arg0) {
                 event.reply("/me could not find &"+m.group(1));
               }
-              @Override
+              public void onConnect(ConnectionEvent arg0) {}
               public void onDisconnect(ConnectionEvent arg0) {}
           });
+          
           c.listeners.add(PacketEventListener.class, new PacketEventListener() {
             @Override
             public void onBounceEvent(PacketEvent evt) {
@@ -171,16 +163,7 @@ public class ConnectMessageEventListener implements PacketEventListener, Console
               event.reply("&"+m.group(1)+" is private.");
               evt.getRoomConnection().closeConnection("Room is private.");
             }
-            @Override
-            public void onHelloEvent(PacketEvent arg0) {}
-            @Override
-            public void onJoinEvent(PacketEvent arg0) {}
-            @Override
-            public void onNickEvent(PacketEvent arg0) {}
-            @Override
-            public void onPartEvent(PacketEvent arg0) {}
-            @Override
-            public void onSendEvent(MessageEvent arg0) {}
+            
             @Override
             public void onSnapshotEvent(PacketEvent evt) {
               event.reply("/me has been added to &"+m.group(1));
@@ -204,12 +187,17 @@ public class ConnectMessageEventListener implements PacketEventListener, Console
                 }
               }
             }
+            public void onHelloEvent(PacketEvent arg0) {}
+            public void onJoinEvent(PacketEvent arg0) {}
+            public void onNickEvent(PacketEvent arg0) {}
+            public void onPartEvent(PacketEvent arg0) {}
+            public void onSendEvent(MessageEvent arg0) {}
           });
+          
           bot.startRoomConnection(c);
         }
       }
     }
-
 
     else if(evt.getMessage().matches("^!removebot @"+nick+" &[A-Za-z]+$")) {
       Pattern r = Pattern.compile("^!removebot @"+nick+" &([A-Za-z]+)$");
@@ -279,11 +267,6 @@ public class ConnectMessageEventListener implements PacketEventListener, Console
       }
     }*/
   }
-
-  @Override
-  public void onSnapshotEvent(PacketEvent arg0) {}
-  @Override
-  public void onBounceEvent(PacketEvent arg0) {}
   
   @Override
   public void onCommand(String message) {
@@ -315,37 +298,27 @@ public class ConnectMessageEventListener implements PacketEventListener, Console
             }
           }
         } else {
+          
           final Matcher matcher = m;
           RoomConnection c = bot.createRoomConnection(m.group(1));
           System.out.println(nick+" is attempting to join...");
+          
           c.listeners.add(ConnectionEventListener.class,new ConnectionEventListener(){
-              @Override
-              public void onConnect(ConnectionEvent arg0) {
-
-              }
-              @Override
-              public void onConnectionError(ConnectionEvent arg0) {
-                System.out.println(nick+" could not find &"+matcher.group(1));
-              }
-              @Override
-              public void onDisconnect(ConnectionEvent evt) {}
+            @Override
+            public void onConnectionError(ConnectionEvent arg0) {
+              System.out.println(nick+" could not find &"+matcher.group(1));
+            }
+            public void onConnect(ConnectionEvent arg0) {}
+            public void onDisconnect(ConnectionEvent evt) {}
           });
+          
           c.listeners.add(PacketEventListener.class, new PacketEventListener() {
             @Override
             public void onBounceEvent(PacketEvent evt) {
               System.out.println("&"+matcher.group(1)+" is private.\n"
                                  +"Use \"!trypass @"+nick+" &"+matcher.group(1)+" [password]\" to attempt to connect with a password.");
             }
-            @Override
-            public void onHelloEvent(PacketEvent arg0) {}
-            @Override
-            public void onJoinEvent(PacketEvent arg0) {}
-            @Override
-            public void onNickEvent(PacketEvent arg0) {}
-            @Override
-            public void onPartEvent(PacketEvent arg0) {}
-            @Override
-            public void onSendEvent(MessageEvent arg0) {}
+            
             @Override
             public void onSnapshotEvent(PacketEvent arg0) {
               System.out.println(nick+" has been added to &"+matcher.group(1));
@@ -369,7 +342,13 @@ public class ConnectMessageEventListener implements PacketEventListener, Console
                 }
               }
             }
+            public void onHelloEvent(PacketEvent arg0) {}
+            public void onJoinEvent(PacketEvent arg0) {}
+            public void onNickEvent(PacketEvent arg0) {}
+            public void onPartEvent(PacketEvent arg0) {}
+            public void onSendEvent(MessageEvent arg0) {}
           });
+          
           bot.startRoomConnection(c);
         }
       }
@@ -426,26 +405,27 @@ public class ConnectMessageEventListener implements PacketEventListener, Console
           RoomConnection rmCon = bot.getRoomConnection(m.group(1));
           if(rmCon.isBounced()){
             rmCon.tryPassword(m.group(2), new ReplyEventListener() {
-                @Override
-                public void onReplyEvent(PacketEvent arg0) {}
-                @Override
-                public void onReplyFail(PacketEvent arg0) {
-                  System.out.println("The password to &"+m.group(1)+" is incorrect.");
-                }
-                @Override
-                public void onReplySuccess(PacketEvent arg0) {
-                  synchronized(dataFile){
-                    JsonObject data = dataFile.getJson();
-                    if(!data.getAsJsonObject("room-passwords").has(m.group(1))){
-                      data.getAsJsonObject("room-passwords").addProperty(m.group(1), m.group(2));
-                      try {
-                        dataFile.setJson(data);
-                      } catch (IOException e) {
-                          e.printStackTrace();
-                      }
+              public void onReplyEvent(PacketEvent arg0) {}
+
+              @Override
+              public void onReplyFail(PacketEvent arg0) {
+                System.out.println("The password to &"+m.group(1)+" is incorrect.");
+              }
+              @Override
+              public void onReplySuccess(PacketEvent arg0) {
+                System.out.println("Password accepted. "+nick+" has been added to &"+m.group(1));
+                synchronized(dataFile){
+                  JsonObject data = dataFile.getJson();
+                  if(!data.getAsJsonObject("room-passwords").has(m.group(1))){
+                    data.getAsJsonObject("room-passwords").addProperty(m.group(1), m.group(2));
+                    try {
+                      dataFile.setJson(data);
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
                   }
                 }
+              }
             });
           } else {
             System.out.println(nick+" is already in &"+m.group(1));
@@ -456,4 +436,10 @@ public class ConnectMessageEventListener implements PacketEventListener, Console
       }
     }
   }
+  public void onHelloEvent(PacketEvent arg0) {}
+  public void onJoinEvent(PacketEvent arg0) {}
+  public void onNickEvent(PacketEvent arg0) {}
+  public void onPartEvent(PacketEvent arg0) {}
+  public void onSnapshotEvent(PacketEvent arg0) {}
+  public void onBounceEvent(PacketEvent arg0) {}
 }

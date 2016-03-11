@@ -15,4 +15,7 @@ public class Auth extends DataPacket{
   public static StandardPacket createPasswordAttempt(String password) {
     return new Auth("passcode",password).createPacket();
   }
+  
+  public String getAuthType() { return type;     }
+  public String getPasscode() { return passcode; }
 }

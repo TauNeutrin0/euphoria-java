@@ -137,7 +137,7 @@ public class RoomConnection implements Runnable{
   public void onConnect(Session session) {
     System.out.println("Connected to "+room+"!");
     this.session = session;
-    session.getPolicy().setMaxTextMessageSize(128*1024);
+    session.getPolicy().setMaxTextMessageSize(1024*1024);
     cookies = HttpCookie.parse(session.getUpgradeResponse().getHeader("Set-Cookie"));
     initThread.interrupt();
     Object[] lns = listeners.getListenerList();
@@ -242,7 +242,7 @@ public class RoomConnection implements Runnable{
               method.invoke(((PacketEventListener) lns[i+1]),evt);
             } catch (IllegalArgumentException e) {e.printStackTrace();
             } catch (IllegalAccessException e) {e.printStackTrace();
-            } catch (InvocationTargetException e) {e.printStackTrace();
+            } catch (InvocationTargetException e) {e.getCause().printStackTrace();
             } catch (SecurityException e) {e.printStackTrace();
             } catch (NoSuchMethodException e) {
               //System.out.println("No handler provided for "+packet.getType()+".");

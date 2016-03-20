@@ -36,10 +36,12 @@ public abstract class Bot {
   }
   
   public RoomConnection getRoomConnection(String room) throws RoomNotConnectedException{
-    for(int i=0;i<connections.size();i++) {
-      if(connections.get(i)!=null) {
-        if(connections.get(i).getRoom().equals(room)){
-          return connections.get(i);
+    synchronized(connections){
+      for(int i=0;i<connections.size();i++) {
+        if(connections.get(i)!=null) {
+          if(connections.get(i).getRoom().equals(room)){
+            return connections.get(i);
+          }
         }
       }
     }
@@ -85,9 +87,11 @@ public abstract class Bot {
     connection.listeners.add(ConnectionEventListener.class, new ConnectionEventListener(){
         @Override
         public void onConnect(ConnectionEvent evt) {
-          Bot.this.connections.add(evt.getRoomConnection());
-          if(Bot.this.pendingConnections.contains(evt.getRoomConnection())) {
-            Bot.this.pendingConnections.remove(evt.getRoomConnection());
+          synchronized(connections){
+            Bot.this.connections.add(evt.getRoomConnection());
+            if(Bot.this.pendingConnections.contains(evt.getRoomConnection())) {
+              Bot.this.pendingConnections.remove(evt.getRoomConnection());
+            }
           }
         }
         @Override
@@ -96,8 +100,10 @@ public abstract class Bot {
         }
         @Override
         public void onConnectionError(ConnectionEvent evt) {
-          if(Bot.this.pendingConnections.contains(evt.getRoomConnection())) {
-            Bot.this.pendingConnections.remove(evt.getRoomConnection());
+          synchronized(connections){
+            if(Bot.this.pendingConnections.contains(evt.getRoomConnection())) {
+              Bot.this.pendingConnections.remove(evt.getRoomConnection());
+            }
           }
         }
     });
@@ -108,7 +114,7 @@ public abstract class Bot {
     if(usesCookies) {
       if(!cookieFile.getJson().get("cookie").getAsString().isEmpty())
         connection.setCookies(cookieFile.getJson().get("cookie").getAsString());
-      connection.listeners.add(ConnectionEventListener.class,new ConnectionEventListener(){
+        connection.listeners.add(ConnectionEventListener.class,new ConnectionEventListener(){
         @Override
         public void onConnect(ConnectionEvent evt) {
           synchronized(Bot.this.cookieFile){
@@ -131,29 +137,35 @@ public abstract class Bot {
   }
   
   public void closeAll() {
-    for(int i=0;i<connections.size();i++) {
-      if(connections.get(i)!=null) {
-        connections.get(i).closeConnection("Program exiting.");
-      } else {
-        System.out.println("Already closed connection.");
+    synchronized(connections){
+      for(int i=0;i<connections.size();i++) {
+        if(connections.get(i)!=null) {
+          connections.get(i).closeConnection("Program exiting.");
+        } else {
+          System.out.println("Already closed connection.");
+        }
       }
     }
   }
   
   public void disconnectRoom(String roomName) {
-    for(int i=0;i<connections.size();i++) {
-      if(connections.get(i).getRoom().equals(roomName)){
-        connections.get(i).closeConnection("Bot disconnecting...");
+    synchronized(connections){
+      for(int i=0;i<connections.size();i++) {
+        if(connections.get(i).getRoom().equals(roomName)){
+          connections.get(i).closeConnection("Bot disconnecting...");
+        }
       }
     }
   }
   
   public boolean isConnected(String roomName) {
     boolean connected=false;
-    for(int i=0;i<connections.size();i++) {
-      if(connections.get(i).getRoom().equals(roomName)){
-        connected=true;
-        break;
+    synchronized(connections){
+      for(int i=0;i<connections.size();i++) {
+        if(connections.get(i).getRoom().equals(roomName)){
+          connected=true;
+          break;
+        }
       }
     }
     return connected;
@@ -161,10 +173,12 @@ public abstract class Bot {
   
   public boolean isPending(String roomName) {
     boolean pending=false;
-    for(int i=0;i<pendingConnections.size();i++) {
-      if(pendingConnections.get(i).getRoom().equals(roomName)){
-        pending=true;
-        break;
+    synchronized(connections){
+      for(int i=0;i<pendingConnections.size();i++) {
+        if(pendingConnections.get(i).getRoom().equals(roomName)){
+          pending=true;
+          break;
+        }
       }
     }
     return pending;

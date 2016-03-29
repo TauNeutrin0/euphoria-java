@@ -14,7 +14,7 @@ public class ExampleBot extends Bot{
   FileIO dataFile;
   
   public ExampleBot() {
-    super("TauBot",true);
+    super("TauBot");
     dataFile = new FileIO("exampleBot_data");
     useCookies(dataFile);
     

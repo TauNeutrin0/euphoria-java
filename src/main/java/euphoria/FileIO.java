@@ -16,7 +16,7 @@ public class FileIO {
   String path = "default.json";
   
   public FileIO(String fileName) {
-    path=System.getProperty("user.dir")+"\\"+fileName+".json";
+    path=System.getProperty("user.dir")+java.io.File.separator+fileName+".json";
     try {
       JsonParser parser = new JsonParser();
       JsonElement jsonElement = parser.parse(new FileReader(path));

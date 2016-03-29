@@ -19,20 +19,28 @@ public abstract class Bot {
   private List<RoomConnection> connections = new ArrayList<RoomConnection>();
   private List<RoomConnection> pendingConnections = new ArrayList<RoomConnection>();
   public EventListenerList listeners = new EventListenerList();
-  private Console console;
+  private static Console console = null;
   private String botName;
   private boolean usesCookies = false;
   private FileIO cookieFile;
   
-  public Bot(String botName, boolean startConsole) {
+  public Bot(String botName) {
     this.botName = botName;
-    if(startConsole){
-      try {
-        initConsole();
-      } catch(java.awt.HeadlessException e) {
-        System.err.println("Could not find display.");
-      }
-    }
+    if(console==null) Bot.initConsole(botName);
+    if(console!=null) console.addWindowListener(new WindowListener(){
+        @Override
+        public void windowClosing(WindowEvent arg0) {
+          System.out.println("Closing connections...");
+          Bot.this.closeAll();
+          System.exit(0);
+        }
+        public void windowActivated(WindowEvent arg0) {}
+        public void windowClosed(WindowEvent arg0) {}
+        public void windowDeactivated(WindowEvent arg0) {}
+        public void windowDeiconified(WindowEvent arg0) {}
+        public void windowIconified(WindowEvent arg0) {}
+        public void windowOpened(WindowEvent arg0) {}
+      });
   }
   
   public RoomConnection getRoomConnection(String room) throws RoomNotConnectedException{
@@ -205,37 +213,22 @@ public abstract class Bot {
     }
   }
   
-  public void initConsole() {
-    console = new euphoria.Console(botName);
-    console.addWindowListener(new WindowListener(){
-        @Override
-        public void windowActivated(WindowEvent arg0) {}
-        @Override
-        public void windowClosed(WindowEvent arg0) {}
-        @Override
-        public void windowClosing(WindowEvent arg0) {
-          System.out.println("Closing connections...");
-          closeAll();
-          System.exit(0);
-        }
-        @Override
-        public void windowDeactivated(WindowEvent arg0) {}
-        @Override
-        public void windowDeiconified(WindowEvent arg0) {}
-        @Override
-        public void windowIconified(WindowEvent arg0) {}
-        @Override
-        public void windowOpened(WindowEvent arg0) {}
-    });
+  public static void initConsole(String title) {
+    System.out.println("Initialising console");
+    try {
+      console = new euphoria.Console(title);
+    } catch(java.awt.HeadlessException e) {
+      System.err.println("Could not find display.");
+    }
   }
   
-  public void addConsoleListener(ConsoleEventListener evtLst) {
+  public static void addConsoleListener(ConsoleEventListener evtLst) {
     if(console!=null){
       console.addListener(evtLst);
     }
   }
   
-  public void removeConsoleListener(ConsoleEventListener evtLst) {
+  public static void removeConsoleListener(ConsoleEventListener evtLst) {
     if(console!=null){
       console.removeListener(evtLst);
     }

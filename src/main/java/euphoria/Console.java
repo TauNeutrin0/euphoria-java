@@ -2,6 +2,7 @@ package euphoria;
 
 import euphoria.events.ConsoleEventListener;
 
+import java.awt.GraphicsEnvironment;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
@@ -40,6 +41,8 @@ public class Console extends JFrame{
     this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     this.add(textField);
     this.pack();
+    if(this.getHeight()>GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds().getHeight())
+      this.setSize(this.getWidth(), (int) GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds().getHeight());
     redirectSystemStreams();
     this.setVisible(true);
   }

@@ -22,6 +22,7 @@ public class ConnectMessageEventListener implements PacketEventListener, Console
     this.bot=bot;
     this.nick=nick;
   }
+  
   public ConnectMessageEventListener(String nick, Bot bot, FileIO dataFile) throws JsonParseException {
     this.bot=bot;
     this.nick=nick;
@@ -118,7 +119,16 @@ public class ConnectMessageEventListener implements PacketEventListener, Console
       final Matcher m = r.matcher(evt.getMessage());
       if (m.find()) {
         if(bot.isConnected(m.group(1))||bot.isPending(m.group(1))){
-          if(hasDataFile) {
+          boolean isBounced = false;
+          try {
+            isBounced = bot.getRoomConnection(m.group(1)).isBounced();
+          } catch (RoomNotConnectedException e1) {
+            e1.printStackTrace();
+          }
+          if(isBounced){
+            evt.reply("&"+m.group(1)+" is private.");
+            evt.getRoomConnection().closeConnection("Room is private.");
+          } else if(hasDataFile) {
             boolean isStored = false;
             for(int i=0;i<dataFile.getJson().getAsJsonArray("rooms").size();i++){
               if(dataFile.getJson().getAsJsonArray("rooms").get(i).getAsString().equals(m.group(1))&&!m.group(1).equals("bots")){
@@ -272,10 +282,19 @@ public class ConnectMessageEventListener implements PacketEventListener, Console
   public void onCommand(String message) {
     if(message.matches("^!sendbot @"+nick+" &[A-Za-z]+$")) {
       Pattern r = Pattern.compile("^!sendbot @"+nick+" &([A-Za-z]+)$");
-      Matcher m = r.matcher(message);
+      final Matcher m = r.matcher(message);
       if (m.find()) {
         if(bot.isConnected(m.group(1))||bot.isPending(m.group(1))){
-          if(hasDataFile) {
+          boolean isBounced = false;
+          try {
+            isBounced = bot.getRoomConnection(m.group(1)).isBounced();
+          } catch (RoomNotConnectedException e1) {
+            e1.printStackTrace();
+          }
+          if(isBounced){
+            System.out.println("&"+m.group(1)+" is private.\n"
+                                 +"Use \"!trypass @"+nick+" &"+m.group(1)+" [password]\" to attempt to connect with a password.");
+          } else if(hasDataFile) {
             boolean isStored = false;
             for(int i=0;i<dataFile.getJson().getAsJsonArray("rooms").size();i++){
               if(dataFile.getJson().getAsJsonArray("rooms").get(i).getAsString().equals(m.group(1))&&!m.group(1).equals("bots")){
@@ -299,14 +318,13 @@ public class ConnectMessageEventListener implements PacketEventListener, Console
           }
         } else {
           
-          final Matcher matcher = m;
           RoomConnection c = bot.createRoomConnection(m.group(1));
           System.out.println(nick+" is attempting to join...");
           
           c.listeners.add(ConnectionEventListener.class,new ConnectionEventListener(){
             @Override
             public void onConnectionError(ConnectionEvent arg0) {
-              System.out.println(nick+" could not find &"+matcher.group(1));
+              System.out.println(nick+" could not find &"+m.group(1));
             }
             public void onConnect(ConnectionEvent arg0) {}
             public void onDisconnect(ConnectionEvent evt) {}
@@ -315,24 +333,24 @@ public class ConnectMessageEventListener implements PacketEventListener, Console
           c.listeners.add(PacketEventListener.class, new PacketEventListener() {
             @Override
             public void onBounceEvent(PacketEvent evt) {
-              System.out.println("&"+matcher.group(1)+" is private.\n"
-                                 +"Use \"!trypass @"+nick+" &"+matcher.group(1)+" [password]\" to attempt to connect with a password.");
+              System.out.println("&"+m.group(1)+" is private.\n"
+                                 +"Use \"!trypass @"+nick+" &"+m.group(1)+" [password]\" to attempt to connect with a password.");
             }
             
             @Override
             public void onSnapshotEvent(PacketEvent arg0) {
-              System.out.println(nick+" has been added to &"+matcher.group(1));
+              System.out.println(nick+" has been added to &"+m.group(1));
               if(hasDataFile) {
                 boolean isStored = false;
-                for(int i=0;i<dataFile.getJson().getAsJsonArray("rooms").size();i++){
-                  if(dataFile.getJson().getAsJsonArray("rooms").get(i).getAsString().equals(matcher.group(1))&&!matcher.group(1).equals("bots")){
-                    isStored = true;
+                synchronized(dataFile){
+                  for(int i=0;i<dataFile.getJson().getAsJsonArray("rooms").size();i++){
+                    if(dataFile.getJson().getAsJsonArray("rooms").get(i).getAsString().equals(m.group(1))&&!m.group(1).equals("bots")){
+                      isStored = true;
+                    }
                   }
-                }
-                if(!isStored) {
-                  synchronized(dataFile){
+                  if(!isStored) {
                     JsonObject data = dataFile.getJson();
-                    data.getAsJsonArray("rooms").add(matcher.group(1));
+                    data.getAsJsonArray("rooms").add(m.group(1));
                     try {
                       dataFile.setJson(data);
                     } catch (IOException e) {
@@ -415,6 +433,23 @@ public class ConnectMessageEventListener implements PacketEventListener, Console
               public void onReplySuccess(PacketEvent arg0) {
                 System.out.println("Password accepted. "+nick+" has been added to &"+m.group(1));
                 synchronized(dataFile){
+                  if(hasDataFile) {
+                    boolean isStored = false;
+                    for(int i=0;i<dataFile.getJson().getAsJsonArray("rooms").size();i++){
+                      if(dataFile.getJson().getAsJsonArray("rooms").get(i).getAsString().equals(m.group(1))&&!m.group(1).equals("bots")){
+                        isStored = true;
+                      }
+                    }
+                    if(!isStored) {
+                      JsonObject data = dataFile.getJson();
+                      data.getAsJsonArray("rooms").add(m.group(1));
+                      try {
+                        dataFile.setJson(data);
+                      } catch (IOException e) {
+                          e.printStackTrace();
+                      }
+                    }
+                  }
                   JsonObject data = dataFile.getJson();
                   if(!data.getAsJsonObject("room-passwords").has(m.group(1))){
                     data.getAsJsonObject("room-passwords").addProperty(m.group(1), m.group(2));

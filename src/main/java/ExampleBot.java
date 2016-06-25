@@ -14,17 +14,16 @@ public class ExampleBot extends Bot{
   FileIO dataFile;
   
   public ExampleBot() {
-    super("TauBot");
     dataFile = new FileIO("exampleBot_data");
     useCookies(dataFile);
     
-    listeners.add(PacketEventListener.class,new StandardEventListener("TauBot","I'm a test bot made by @TauNeutrin0. Hi!"));
+    listeners.add(PacketEventListener.class,new StandardEventListener(this,"TauBot","I'm a test bot made by @TauNeutrin0. Hi!"));
     
     ConnectMessageEventListener cMEL = new ConnectMessageEventListener("TauBot",this,dataFile).connectAll();
     addConsoleListener(cMEL);
     listeners.add(PacketEventListener.class,cMEL);
     
-    connectRoom("bots");
+    connectRoom("test");
     
     addConsoleListener(new ConsoleEventListener() {
       @Override

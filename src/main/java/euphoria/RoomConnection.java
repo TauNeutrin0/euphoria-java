@@ -1,28 +1,18 @@
 package euphoria;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
-import com.google.gson.JsonParser;
-import euphoria.packets.*;
-import euphoria.packets.commands.*;
-import euphoria.packets.events.*;
-import euphoria.packets.replies.*;
-import euphoria.events.*;
-import euphoria.events.PacketEvent;
-
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.HttpCookie;
 import java.net.URI;
 import java.net.URISyntaxException;
-
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -38,11 +28,34 @@ import org.eclipse.jetty.websocket.api.annotations.WebSocket;
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
+
+import euphoria.events.ConnectionEvent;
+import euphoria.events.ConnectionEventListener;
+import euphoria.events.MessageEvent;
+import euphoria.events.PacketEvent;
+import euphoria.events.PacketEventListener;
+import euphoria.events.PausedEventListener;
+import euphoria.events.ReplyEventListener;
+import euphoria.packets.DataPacket;
+import euphoria.packets.StandardPacket;
+import euphoria.packets.commands.Auth;
+import euphoria.packets.commands.Nick;
+import euphoria.packets.commands.Send;
+import euphoria.packets.events.PingEvent;
+import euphoria.packets.replies.AuthReply;
+import euphoria.packets.replies.NickReply;
+
 @WebSocket
 public class RoomConnection implements Runnable{
   private Thread initThread;
   private Session session;
   private WebSocketClient client;
+  private Calendar startupTime;
   public EventListenerList listeners = new EventListenerList();
   private EventListenerList sharedListeners;
   private PausedEventListener pauseListener = new PausedEventListener(this);
@@ -50,6 +63,7 @@ public class RoomConnection implements Runnable{
   private String nextId = "0";
   private boolean isPaused = false;
   private String room;
+  private String currNick;
   private List<HttpCookie> cookies = new ArrayList<HttpCookie>();
   private String password;
   private boolean isBounced = false;
@@ -153,6 +167,7 @@ public class RoomConnection implements Runnable{
         ((ConnectionEventListener) lns[i+1]).onConnect(evt);
       }
     }
+    startupTime=new GregorianCalendar(TimeZone.getTimeZone("UTC"));
   }
 
   @OnWebSocketMessage
@@ -191,6 +206,8 @@ public class RoomConnection implements Runnable{
       }
       if(packet.getType().equals("ping-event")) {
         ((PingEvent)packet.getData()).handle(this);
+      } else if(packet.getType().equals("nick-reply")){
+        currNick = ((NickReply)packet.getData()).getTo();
       } else if(packet.getType().equals("bounce-event")) {
         if(password!=null) {
           if(passwordListener==null) sendPacket(Auth.createPasswordAttempt(password));
@@ -395,9 +412,11 @@ public class RoomConnection implements Runnable{
   }
   
   public void sendMessage(String message){ sendPacket(new Send(message).createPacket());}
-  public void sendMessage(String message,String replyId){ sendPacket(new Send(message,replyId).createPacket());}
+  public void sendMessage(String message, String replyId){ sendPacket(new Send(message,replyId).createPacket());}
   public void changeNick(String nick){ sendPacket(new Nick(nick).createPacket());}
+  public String getNick() { return currNick; }
   public String getRoom() { return room; }
+  public Calendar getStartupTime() { return startupTime; }
   public List<HttpCookie> getCookies() { return cookies; }
   public String getCookiesAsString() { return cookies.toString(); }
   public boolean isPaused() { return isPaused; }

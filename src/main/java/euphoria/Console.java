@@ -27,8 +27,8 @@ public class Console extends JFrame{
   private EventListenerList listeners = new EventListenerList();
   private final static String newline = "\n";
   
-  public Console(String botName) {
-    super(botName+" - Euphoria Bot console");
+  public Console() {
+    super("Euphoria Bot console");
     setLayout(new BoxLayout(getContentPane(), BoxLayout.Y_AXIS));
     textArea.setEditable(false);
     this.add(scrollPane);

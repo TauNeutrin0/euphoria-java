@@ -2,6 +2,7 @@ package euphoria;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
+
 import euphoria.events.ConnectionEvent;
 import euphoria.events.ConnectionEventListener;
 import euphoria.events.ConsoleEventListener;
@@ -11,7 +12,10 @@ import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.TimeZone;
 
 import javax.swing.event.EventListenerList;
 
@@ -20,13 +24,12 @@ public abstract class Bot {
   private List<RoomConnection> pendingConnections = new ArrayList<RoomConnection>();
   public EventListenerList listeners = new EventListenerList();
   private static Console console = null;
-  private String botName;
   private boolean usesCookies = false;
   private FileIO cookieFile;
+  private Calendar startupTime;
   
-  public Bot(String botName) {
-    this.botName = botName;
-    if(console==null) Bot.initConsole(botName);
+  public Bot() {
+    if(console==null) Bot.initConsole();
     if(console!=null) console.addWindowListener(new WindowListener(){
         @Override
         public void windowClosing(WindowEvent arg0) {
@@ -41,6 +44,7 @@ public abstract class Bot {
         public void windowIconified(WindowEvent arg0) {}
         public void windowOpened(WindowEvent arg0) {}
       });
+    startupTime=new GregorianCalendar(TimeZone.getTimeZone("UTC"));
   }
   
   public RoomConnection getRoomConnection(String room) throws RoomNotConnectedException{
@@ -213,10 +217,10 @@ public abstract class Bot {
     }
   }
   
-  public static void initConsole(String title) {
+  public static void initConsole() {
     System.out.println("Initialising console");
     try {
-      console = new euphoria.Console(title);
+      console = new euphoria.Console();
     } catch(java.awt.HeadlessException e) {
       System.err.println("Could not find display.");
     }
@@ -232,5 +236,9 @@ public abstract class Bot {
     if(console!=null){
       console.removeListener(evtLst);
     }
+  }
+  
+  public Calendar getStartupTime() {
+    return startupTime;
   }
 }

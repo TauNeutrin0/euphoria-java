@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.github.TauNeutrin0</groupId>
   <artifactId>euphoria-java</artifactId>
-  <version>v1.3-beta</version>
+  <version>v1.4-beta</version>
   <packaging>jar</packaging>
   <build>
   	 <plugins>

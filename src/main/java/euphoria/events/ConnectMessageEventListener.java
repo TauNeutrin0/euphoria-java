@@ -114,8 +114,8 @@ public class ConnectMessageEventListener implements PacketEventListener, Console
 
   @Override
   public void onSendEvent(MessageEvent evt) {
-    if(evt.getMessage().matches("^!sendbot @"+nick+" &[A-Za-z]+$")) {
-      Pattern r = Pattern.compile("^!sendbot @"+nick+" &([A-Za-z]+)$");
+    if(evt.getMessage().matches("^!sendbot @"+nick+" &[A-Za-z0-9]+$")) {
+      Pattern r = Pattern.compile("^!sendbot @"+nick+" &([A-Za-z0-9]+)$");
       final Matcher m = r.matcher(evt.getMessage());
       if (m.find()) {
         if(bot.isConnected(m.group(1))||bot.isPending(m.group(1))){
@@ -209,8 +209,8 @@ public class ConnectMessageEventListener implements PacketEventListener, Console
       }
     }
 
-    else if(evt.getMessage().matches("^!removebot @"+nick+" &[A-Za-z]+$")) {
-      Pattern r = Pattern.compile("^!removebot @"+nick+" &([A-Za-z]+)$");
+    else if(evt.getMessage().matches("^!removebot @"+nick+" &[A-Za-z0-9]+$")) {
+      Pattern r = Pattern.compile("^!removebot @"+nick+" &([A-Za-z0-9]+)$");
       Matcher m = r.matcher(evt.getMessage());
       if (m.find()) {
         boolean removed = false;
@@ -248,8 +248,8 @@ public class ConnectMessageEventListener implements PacketEventListener, Console
     }
     
     /*  PASSWORD CODE: Removed due to potential security issues.
-      else if(evt.getMessage().matches("^!trypass @"+nick+" &[A-Za-z]+ [\\S\\s]+$")) {
-      Pattern r = Pattern.compile("^!trypass @"+nick+" &([A-Za-z]+) ([\\S\\s]+)$");
+      else if(evt.getMessage().matches("^!trypass @"+nick+" &[A-Za-z0-9]+ [\\S\\s]+$")) {
+      Pattern r = Pattern.compile("^!trypass @"+nick+" &([A-Za-z0-9]+) ([\\S\\s]+)$");
       final Matcher m = r.matcher(evt.getMessage());
       final MessageEvent event = evt;
       if (m.find()) {
@@ -280,8 +280,8 @@ public class ConnectMessageEventListener implements PacketEventListener, Console
   
   @Override
   public void onCommand(String message) {
-    if(message.matches("^!sendbot @"+nick+" &[A-Za-z]+$")) {
-      Pattern r = Pattern.compile("^!sendbot @"+nick+" &([A-Za-z]+)$");
+    if(message.matches("^!sendbot @"+nick+" &[A-Za-z0-9]+$")) {
+      Pattern r = Pattern.compile("^!sendbot @"+nick+" &([A-Za-z0-9]+)$");
       final Matcher m = r.matcher(message);
       if (m.find()) {
         if(bot.isConnected(m.group(1))||bot.isPending(m.group(1))){
@@ -373,8 +373,8 @@ public class ConnectMessageEventListener implements PacketEventListener, Console
     }
 
 
-    else if(message.matches("^!removebot @"+nick+" &[A-Za-z]+$")) {
-      Pattern r = Pattern.compile("^!removebot @"+nick+" &([A-Za-z]+)$");
+    else if(message.matches("^!removebot @"+nick+" &[A-Za-z0-9]+$")) {
+      Pattern r = Pattern.compile("^!removebot @"+nick+" &([A-Za-z0-9]+)$");
       Matcher m = r.matcher(message);
       if (m.find()) {
         boolean removed = false;
@@ -415,8 +415,8 @@ public class ConnectMessageEventListener implements PacketEventListener, Console
     }
     
     
-    else if(message.matches("^!trypass @"+nick+" &[A-Za-z]+ [\\S\\s]+$")) {
-      Pattern r = Pattern.compile("^!trypass @"+nick+" &([A-Za-z]+) ([\\S\\s]+)$");
+    else if(message.matches("^!trypass @"+nick+" &[A-Za-z0-9]+ [\\S\\s]+$")) {
+      Pattern r = Pattern.compile("^!trypass @"+nick+" &([A-Za-z0-9]+) ([\\S\\s]+)$");
       final Matcher m = r.matcher(message);
       if (m.find()) {
         try {

@@ -103,6 +103,7 @@ public class ConnectMessageEventListener implements PacketEventListener, Console
             public void onPartEvent(PacketEvent arg0) {}
             public void onSendEvent(MessageEvent arg0) {}
             public void onSnapshotEvent(PacketEvent arg0) {}
+            public void packetRecieved(PacketEvent evt) {}
           });
           
           bot.startRoomConnection(c);
@@ -202,6 +203,7 @@ public class ConnectMessageEventListener implements PacketEventListener, Console
             public void onNickEvent(PacketEvent arg0) {}
             public void onPartEvent(PacketEvent arg0) {}
             public void onSendEvent(MessageEvent arg0) {}
+            public void packetRecieved(PacketEvent evt) {}
           });
           
           bot.startRoomConnection(c);
@@ -365,6 +367,7 @@ public class ConnectMessageEventListener implements PacketEventListener, Console
             public void onNickEvent(PacketEvent arg0) {}
             public void onPartEvent(PacketEvent arg0) {}
             public void onSendEvent(MessageEvent arg0) {}
+            public void packetRecieved(PacketEvent evt) {}
           });
           
           bot.startRoomConnection(c);
@@ -477,4 +480,5 @@ public class ConnectMessageEventListener implements PacketEventListener, Console
   public void onPartEvent(PacketEvent arg0) {}
   public void onSnapshotEvent(PacketEvent arg0) {}
   public void onBounceEvent(PacketEvent arg0) {}
+  public void packetRecieved(PacketEvent evt) {}
 }

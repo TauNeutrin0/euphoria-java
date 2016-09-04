@@ -1,6 +1,8 @@
 package euphoria.events;
 
 public abstract class MessageEventListener implements PacketEventListener{
+    @Override
+    public void packetRecieved(PacketEvent evt) {};
 
     @Override
     public void onHelloEvent(PacketEvent arg0) {}

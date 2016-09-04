@@ -70,4 +70,6 @@ public class StandardEventListener implements PacketEventListener{
   public void onPartEvent(PacketEvent evt) {}
   @Override
   public void onBounceEvent(PacketEvent arg0) {}
+  @Override
+  public void packetRecieved(PacketEvent evt) {}
 }

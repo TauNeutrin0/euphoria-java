@@ -3,6 +3,7 @@ package euphoria.events;
 import java.util.EventListener;
 
 public interface PacketEventListener extends EventListener {
+  public void packetRecieved(PacketEvent evt);
   public void onSendEvent(MessageEvent evt);
   public void onSnapshotEvent(PacketEvent evt);
   public void onHelloEvent(PacketEvent evt);

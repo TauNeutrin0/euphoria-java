@@ -14,14 +14,16 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.TimeZone;
 
 import javax.swing.event.EventListenerList;
 
 public abstract class Bot {
-    private List<RoomConnection> connections        = new ArrayList<RoomConnection>();
-    private List<RoomConnection> pendingConnections = new ArrayList<RoomConnection>();
+    private Map<String, RoomConnection> connectionsMap = new HashMap<String, RoomConnection>();
+    private Map<String, RoomConnection> pendingConnectionsMap = new HashMap<String, RoomConnection>();
     public final Object          connectionLock     = new Object();
     public EventListenerList     listeners          = new EventListenerList();
     private static Console       console            = null;
@@ -65,12 +67,8 @@ public abstract class Bot {
     // Get a connection that is connected.
     public RoomConnection getRoomConnection(String room) throws RoomNotConnectedException {
         synchronized (connectionLock) {
-            for (RoomConnection connection : connections) {
-                if (connection != null) {
-                    if (connection.getRoom().equals(room)) {
-                        return connection;
-                    }
-                }
+            if(connectionsMap.containsKey(room)){
+                return connectionsMap.get(room);  
             }
         }
         throw new RoomNotConnectedException();
@@ -79,19 +77,10 @@ public abstract class Bot {
     // Get connection that is either pending or connected.
     public RoomConnection getAnyRoomConnection(String room) throws RoomNotConnectedException {
         synchronized (connectionLock) {
-            for (RoomConnection connection : connections) {
-                if (connection != null) {
-                    if (connection.getRoom().equals(room)) {
-                        return connection;
-                    }
-                }
-            }
-            for (RoomConnection connection : pendingConnections) {
-                if (connection != null) {
-                    if (connection.getRoom().equals(room)) {
-                        return connection;
-                    }
-                }
+            if(connectionsMap.containsKey(room)){
+                return connectionsMap.get(room);  
+            } else if(pendingConnectionsMap.containsKey(room)){
+                return pendingConnectionsMap.get(room);  
             }
         }
         throw new RoomNotConnectedException();
@@ -102,7 +91,7 @@ public abstract class Bot {
             if (!isConnected(roomName) && !isPending(roomName)) {
                 RoomConnection connection = new RoomConnection(roomName);
                 setupRoomConnection(connection);
-                pendingConnections.add(connection);
+                pendingConnectionsMap.put(roomName, connection);
                 new Thread(connection).start();
             }
         }
@@ -115,7 +104,7 @@ public abstract class Bot {
                 RoomConnection connection = new RoomConnection(roomName);
                 setupRoomConnection(connection);
                 connection.listeners.add(ConnectionEventListener.class, eL);
-                pendingConnections.add(connection);
+                pendingConnectionsMap.put(roomName, connection);
                 new Thread(connection).start();
             }
         }
@@ -133,7 +122,7 @@ public abstract class Bot {
 
     public void startRoomConnection(RoomConnection connection) {
         synchronized (connectionLock) {
-            pendingConnections.add(connection);
+            pendingConnectionsMap.put(connection.getRoom(), connection);
             new Thread(connection).start();
         }
     }
@@ -144,9 +133,9 @@ public abstract class Bot {
             @Override
             public void onConnect(ConnectionEvent evt) {
                 synchronized (connectionLock) {
-                    Bot.this.connections.add(evt.getRoomConnection());
-                    if (Bot.this.pendingConnections.contains(evt.getRoomConnection())) {
-                        Bot.this.pendingConnections.remove(evt.getRoomConnection());
+                    Bot.this.connectionsMap.put(evt.getRoomName(),evt.getRoomConnection());
+                    if (Bot.this.pendingConnectionsMap.containsValue(evt.getRoomConnection())) {
+                        Bot.this.pendingConnectionsMap.remove(evt.getRoomName());
                     }
                 }
             }
@@ -154,15 +143,15 @@ public abstract class Bot {
             @Override
             public void onDisconnect(ConnectionEvent evt) {
                 synchronized (connectionLock) {
-                    Bot.this.connections.remove(evt.getRoomConnection());
+                    Bot.this.connectionsMap.remove(evt.getRoomName());
                 }
             }
 
             @Override
             public void onConnectionError(ConnectionEvent evt) {
                 synchronized (connectionLock) {
-                    if (Bot.this.pendingConnections.contains(evt.getRoomConnection())) {
-                        Bot.this.pendingConnections.remove(evt.getRoomConnection());
+                    if (Bot.this.pendingConnectionsMap.containsValue(evt.getRoomConnection())) {
+                        Bot.this.pendingConnectionsMap.remove(evt.getRoomName());
                     }
                 }
             }
@@ -202,35 +191,24 @@ public abstract class Bot {
 
     public void closeAll() {
         synchronized (connectionLock) {
-            for (int i = 0; i < connections.size(); i++) {
-                if (connections.get(i) != null) {
-                    connections.get(i).closeConnection("Program exiting.");
-                } else {
-                    System.out.println("Already closed connection.");
-                }
+            for (Map.Entry<String, RoomConnection> entry : connectionsMap.entrySet()) {
+                final RoomConnection conn = entry.getValue();
+                (new Thread() {public void run() {conn.closeConnection("Program exiting.");}}).start();
             }
         }
     }
 
     public void disconnectRoom(String roomName) {
         synchronized (connectionLock) {
-            for (int i = 0; i < connections.size(); i++) {
-                if (connections.get(i).getRoom().equals(roomName)) {
-                    connections.get(i).closeConnection("Bot disconnecting...");
-                }
-            }
+            final RoomConnection conn = connectionsMap.get(roomName);
+            (new Thread() {public void run() {conn.closeConnection("Bot disconnecting...");}}).start();
         }
     }
 
     public boolean isConnected(String roomName) {
         boolean connected = false;
         synchronized (connectionLock) {
-            for (int i = 0; i < connections.size(); i++) {
-                if (connections.get(i).getRoom().equals(roomName)) {
-                    connected = true;
-                    break;
-                }
-            }
+            connected=connectionsMap.containsKey(roomName);
         }
         return connected;
     }
@@ -238,12 +216,7 @@ public abstract class Bot {
     public boolean isPending(String roomName) {
         boolean pending = false;
         synchronized (connectionLock) {
-            for (int i = 0; i < pendingConnections.size(); i++) {
-                if (pendingConnections.get(i).getRoom().equals(roomName)) {
-                    pending = true;
-                    break;
-                }
-            }
+            pending = pendingConnectionsMap.containsKey(roomName);
         }
         return pending;
     }

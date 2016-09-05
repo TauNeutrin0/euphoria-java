@@ -125,7 +125,7 @@ public class RoomConnection implements Runnable {
         try {
             client.stop();
         } catch (Exception e) {
-            System.out.println("Caught exception at connection close.");
+            e.printStackTrace();
         }
     }
 

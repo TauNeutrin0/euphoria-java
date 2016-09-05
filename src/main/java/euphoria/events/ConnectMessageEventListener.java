@@ -128,7 +128,8 @@ public class ConnectMessageEventListener implements PacketEventListener, Console
           }
           if(isBounced){
             evt.reply("&"+m.group(1)+" is private.");
-            evt.getRoomConnection().closeConnection("Room is private.");
+            bot.disconnectRoom(evt.getRoomName());
+            //evt.getRoomConnection().closeConnection("Room is private.");
           } else if(hasDataFile) {
             boolean isStored = false;
             for(int i=0;i<dataFile.getJson().getAsJsonArray("rooms").size();i++){

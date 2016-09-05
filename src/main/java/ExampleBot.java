@@ -53,7 +53,7 @@ public class ExampleBot extends Bot{
     listeners.add(ConnectionEventListener.class,new ConnectionEventListener() {
         @Override
         public void onConnect(ConnectionEvent evt) {
-          if(evt.getRoomConnection().getRoom().equals("bots")){
+          if(evt.getRoomName().equals("bots")){
             evt.getRoomConnection().listeners.add(PacketEventListener.class, announceListener);
           }
         }

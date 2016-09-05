@@ -20,4 +20,7 @@ public class PacketEvent extends EventObject {
   public RoomConnection getRoomConnection() {
     return room;
   }
+  public String getRoomName() {
+    return room.getRoom();
+  }
 }

@@ -223,7 +223,7 @@ public class RoomConnection implements Runnable {
 
     }
     
-    public void handlePacket(StandardPacket packet) throws JsonParseException {
+    public void handlePacket(StandardPacket packet) {
         
         if (isPaused) {
             if (packet.getType().equals("send-event")) {
